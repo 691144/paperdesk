@@ -42,6 +42,9 @@
     get connected() { return !!ls.get(this.key); }
     get account() { return ls.get(this.key)?.hint || ''; }
     tokens() { return ls.get(this.key) || {}; }
+    /** Scopes granted so far (as the provider reported them). */
+    get scopes() { return this.tokens().scopes || []; }
+    hasScopes(list) { const have = new Set(this.scopes.map((x) => x.replace(/^https:\/\/graph\.microsoft\.com\//i, '').toLowerCase())); return list.every((x) => have.has(x.replace(/^https:\/\/graph\.microsoft\.com\//i, '').toLowerCase())); }
     saveTokens(t) { ls.set(this.key, { ...this.tokens(), ...t }); }
     expire() { const t = this.tokens(); if (t.access) { delete t.access; ls.set(this.key, t); } }
     async api(url, opts = {}) {
@@ -57,20 +60,22 @@
   const G_UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
   class GoogleDrive extends Provider {
     constructor() { super('google', 'Google Drive'); }
-    async authUrl(silent) {
+    async authUrl(silent, extra = []) {
       const state = rand();
+      const scope = [...new Set(['https://www.googleapis.com/auth/drive.appdata', ...extra])].join(' ');
       const p = new URLSearchParams({
         client_id: clientId('google'), redirect_uri: redirectUri(), response_type: 'token',
-        scope: 'https://www.googleapis.com/auth/drive.appdata', include_granted_scopes: 'true', state,
-        prompt: silent ? 'none' : 'consent',
+        scope, include_granted_scopes: 'true', state,
       });
+      // Sync asks for consent explicitly; extra permissions only prompt when they are new.
+      if (silent) p.set('prompt', 'none'); else if (!extra.length) p.set('prompt', 'consent');
       if (this.account) p.set('login_hint', this.account);
       return { url: 'https://accounts.google.com/o/oauth2/v2/auth?' + p, pending: { state } };
     }
     async complete(params) {
       const access = params.get('access_token');
       if (!access) throw new Error('Google did not return a sign-in token.');
-      this.saveTokens({ access, exp: Date.now() + (Number(params.get('expires_in')) || 3600) * 1000 - 60000 });
+      this.saveTokens({ access, exp: Date.now() + (Number(params.get('expires_in')) || 3600) * 1000 - 60000, scopes: (params.get('scope') || '').split(/\s+/).filter(Boolean) });
       try {
         const r = await this.api('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)');
         if (r.ok) this.saveTokens({ hint: (await r.json()).user?.emailAddress || '' });
@@ -125,21 +130,24 @@
   const enc = (path) => path.split('/').map(encodeURIComponent).join('/');
   class OneDrive extends Provider {
     constructor() { super('microsoft', 'OneDrive'); }
-    async authUrl(silent) {
+    scopeString(extra = []) { return [...new Set([...MS_SCOPE.split(' '), ...(this.tokens().extra || []), ...extra])].join(' '); }
+    async authUrl(silent, extra = []) {
       const state = rand(); const { verifier, challenge } = await pkce();
       const p = new URLSearchParams({
         client_id: clientId('microsoft'), response_type: 'code', redirect_uri: redirectUri(), response_mode: 'fragment',
-        scope: MS_SCOPE, state, code_challenge: challenge, code_challenge_method: 'S256', prompt: silent ? 'none' : 'select_account',
+        scope: this.scopeString(extra), state, code_challenge: challenge, code_challenge_method: 'S256', prompt: silent ? 'none' : 'select_account',
       });
       if (this.account) p.set('login_hint', this.account);
-      return { url: `${MS}/authorize?${p}`, pending: { state, verifier } };
+      return { url: `${MS}/authorize?${p}`, pending: { state, verifier, extra } };
     }
-    async tokenRequest(form) {
-      const res = await net(`${MS}/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: clientId('microsoft'), scope: MS_SCOPE, ...form }) });
+    async tokenRequest(form, extra = []) {
+      const res = await net(`${MS}/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: clientId('microsoft'), scope: this.scopeString(extra), ...form }) });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) { const e = new C.AuthError(j.error_description?.split('\r\n')[0] || 'Microsoft sign-in has expired.'); e.status = res.status; throw e; }
       const t = { access: j.access_token, exp: Date.now() + (Number(j.expires_in) || 3600) * 1000 - 60000 };
       if (j.refresh_token) t.refresh = j.refresh_token;
+      if (j.scope) t.scopes = j.scope.split(/\s+/).filter(Boolean);
+      if (extra.length) t.extra = [...new Set([...(this.tokens().extra || []), ...extra])];
       if (j.id_token) { try { const claims = JSON.parse(atob(j.id_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); t.hint = claims.preferred_username || claims.email || ''; } catch { /* hint only */ } }
       this.saveTokens(t);
       return t.access;
@@ -147,7 +155,7 @@
     async complete(params, pending) {
       const code = params.get('code');
       if (!code) throw new Error('Microsoft did not return a sign-in code.');
-      await this.tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: pending.verifier });
+      await this.tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: pending.verifier }, pending.extra || []);
     }
     async token() {
       const t = this.tokens();
@@ -188,10 +196,10 @@
   const providers = { google: new GoogleDrive(), microsoft: new OneDrive() };
 
   /** Sends the page to the provider's sign-in. silent = no prompt, used to renew. */
-  async function startSignIn(type, { silent = false } = {}) {
+  async function startSignIn(type, { silent = false, scopes = [], purpose = 'sync', resume = null } = {}) {
     const p = providers[type];
-    const { url, pending } = await p.authUrl(silent);
-    ls.set(PENDING, { ...pending, provider: type, silent, at: Date.now() });
+    const { url, pending } = await p.authUrl(silent, scopes);
+    ls.set(PENDING, { ...pending, provider: type, silent, purpose, resume, at: Date.now() });
     location.assign(url);
   }
 
@@ -207,9 +215,16 @@
     ls.set(PENDING, null);
     history.replaceState(null, '', location.pathname + location.search);
     const p = providers[pending.provider];
-    if (params.get('error')) return { provider: pending.provider, ok: false, silent: pending.silent, error: params.get('error_description') || params.get('error') };
-    try { await p.complete(params, pending); return { provider: pending.provider, ok: true, silent: pending.silent }; }
-    catch (e) { return { provider: pending.provider, ok: false, silent: pending.silent, error: e.message }; }
+    const base = { provider: pending.provider, silent: pending.silent, purpose: pending.purpose || 'sync', resume: pending.resume || null };
+    let result;
+    if (params.get('error')) result = { ...base, ok: false, error: params.get('error_description') || params.get('error') };
+    else {
+      try { await p.complete(params, pending); result = { ...base, ok: true }; }
+      catch (e) { result = { ...base, ok: false, error: e.message }; }
+    }
+    window.PDCloud.lastReturn = result;
+    try { window.dispatchEvent(new CustomEvent('pd-auth-return', { detail: result })); } catch { /* old browsers */ }
+    return result;
   }
 
   window.PDCloud = { providers, startSignIn, handleRedirect, redirectUri, clientId, setClientId: (type, v) => ls.set('pd.clientId.' + type, v ? String(v).trim() : null), NetError };

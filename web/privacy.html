@@ -18,7 +18,7 @@
 <body>
 <main>
   <h1>PaperDesk privacy</h1>
-  <p class="muted">Last updated 10 November 2026</p>
+  <p class="muted">Last updated 11 November 2026</p>
 
   <h2>Short version</h2>
   <p>PaperDesk has no accounts, no servers of its own, no analytics and no ads. Your desks stay on your device. If you turn on sync, they are stored in your own Google Drive or OneDrive, and only you can see them.</p>
@@ -32,10 +32,17 @@
 
   <h2>What PaperDesk can access</h2>
   <ul>
-    <li><b>Google Drive:</b> the <code>drive.appdata</code> permission, which covers only PaperDesk's own hidden folder. PaperDesk cannot see, read or change any of your other files.</li>
+    <li><b>Google Drive:</b> the <code>drive.appdata</code> permission, which covers only PaperDesk's own hidden folder. PaperDesk cannot see, read or change any of your other files. (Sending to Google Tasks or Google Docs asks for its own permission, see below.)</li>
     <li><b>OneDrive:</b> the <code>Files.ReadWrite.AppFolder</code> permission, which covers only PaperDesk's own app folder, plus the standard sign-in permissions (<code>openid</code>, <code>profile</code>, <code>offline_access</code>) so it can show which account is connected and stay signed in.</li>
   </ul>
   <p>Google and Microsoft data is used only to save and load your own desks, is never shared, sold or used for advertising, and is never used to train AI models. PaperDesk's use of information received from Google APIs follows the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+  <h2>Sending notes to other apps</h2>
+  <ul>
+    <li>When you use <b>Send to</b>, the notes you chose go straight from your device to the app you picked (for example OneNote, Todoist or a web address you entered). PaperDesk has no server in between and keeps no copy.</li>
+    <li>Optional extra permissions, asked only when you first send to that destination: <code>Notes.Create</code> (create OneNote pages), <code>Tasks.ReadWrite</code> (Microsoft To Do and Planner), <code>https://www.googleapis.com/auth/tasks</code> (Google Tasks) and <code>https://www.googleapis.com/auth/drive.file</code> (create Google Docs; PaperDesk can see only the files it creates).</li>
+    <li>Tokens you paste for other tools (such as Todoist or Notion) and your saved destinations are kept in your browser's storage on that device only. They are never synced.</li>
+  </ul>
 
   <h2>Hosting</h2>
   <p>The app's files are served by GitHub Pages. GitHub may keep standard web server logs (such as IP addresses) when the page loads; your notes are never sent to GitHub.</p>

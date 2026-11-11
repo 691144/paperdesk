@@ -18,6 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" />
   <link rel="stylesheet" href="freeboard_features.css" />
+  <link rel="stylesheet" href="send.css" />
   <title>PaperDesk</title>
   <style>
     /* ------------------------------------------------------------------
@@ -310,7 +311,19 @@
     .tray .head span { flex: 1; }
     .tray .chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .tray .chip { cursor: grab; }
-    #draw-tray.show { display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+    #draw-tray.show, #erase-tray.show { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 6px 8px; padding: 6px 8px; }
+    .seg.ink-kinds button, .seg.shape-pick button, .seg.sizes button { width: 34px; }
+    .seg .sz { border-radius: 50%; background: currentColor; display: block; }
+    #shape-pick { display: none; } #draw-tray.shape #shape-pick { display: flex; }
+    .seg.shape-pick svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linejoin: round; stroke-linecap: round; }
+    .seg.shape-pick [data-fill][aria-pressed="true"] svg { fill: color-mix(in srgb, currentColor 30%, transparent); }
+    #erase-tray .msg { font-size: 12px; color: var(--ink-3); padding: 0 4px; }
+    #ink path.hl, .scribbles path.hl, .drawbox path.hl { mix-blend-mode: multiply; }
+    [data-theme="dark"] #ink path.hl, [data-theme="dark"] .scribbles path.hl { mix-blend-mode: screen; }
+    #viewport.tool-erase, #viewport.tool-erase .note, #viewport.tool-erase .note * { cursor: none !important; }
+    #erase-ring { position: absolute; border-radius: 50%; border: 1.5px solid var(--ink-2); background: color-mix(in srgb, var(--paper) 55%, transparent); pointer-events: none; z-index: 30; transform: translate(-50%, -50%); display: none; }
+    #viewport.tool-erase #erase-ring { display: block; }
+    .note.erase-hit { opacity: .35; outline: 2px dashed var(--danger, #B42318); outline-offset: 2px; }
     .swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; background: transparent; display: grid; place-items: center; }
     .swatch i { width: 16px; height: 16px; border-radius: 50%; background: var(--c); }
     .swatch[aria-pressed="true"] { border-color: var(--accent); }
@@ -590,6 +603,10 @@
       <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V11M11 10.5v-6a1.5 1.5 0 0 1 3 0v6M14 10.5v-4a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.8-2.4L3.9 15a1.5 1.5 0 0 1 2.4-1.8L8 15"/></symbol>
       <symbol id="i-type" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></symbol>
       <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1L19 8a2.1 2.1 0 0 0-3-3L5 16z"/><path d="M14 7l3 3"/></symbol>
+      <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M8.5 20H20M4.6 14.6l8.8-8.8a2 2 0 0 1 2.8 0l2.5 2.5a2 2 0 0 1 0 2.8L10.5 20h-3L4.6 17.4a2 2 0 0 1 0-2.8zM8.5 10.7l4.8 4.8"/></symbol>
+      <symbol id="i-highlighter" viewBox="0 0 24 24"><path d="M9 11.5 4.5 16v3.5H8l4.5-4.5M9 11.5l6.5-6.5 3.5 3.5-6.5 6.5M9 11.5l3.5 3.5M14 20h6"/></symbol>
+      <symbol id="i-shapes" viewBox="0 0 24 24"><rect x="3.5" y="12.5" width="8" height="8" rx="1.5"/><circle cx="16" cy="8" r="4.5"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z"/></symbol>
       <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
       <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.25"/></symbol>
       <symbol id="i-canvas" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="6.5" y="7.5" width="5" height="4" rx="1"/><rect x="12.5" y="12.5" width="5" height="4" rx="1"/></symbol>
@@ -715,6 +732,7 @@
         <button class="ib sm" data-act="link" aria-label="Link to another note" title="Link to another note"><svg class="i s16"><use href="#i-link"/></svg></button>
         <button class="ib sm" data-act="badges" aria-label="Badges" title="Badges" aria-haspopup="menu"><svg class="i s16"><use href="#i-tag"/></svg></button>
         <button class="ib sm" data-act="move" aria-label="Move to another desk" title="Move to another desk" aria-haspopup="menu"><svg class="i s16"><use href="#i-move"/></svg></button>
+        <button class="ib sm" data-act="send" aria-label="Send to another app (S)" title="Send to another app (S)"><svg class="i s16"><use href="#i-send"/></svg></button>
         <div class="vdiv" style="height:20px"></div>
         <button class="ib sm" data-act="more" aria-label="More actions" title="More actions" aria-haspopup="menu"><svg class="i s16"><use href="#i-more"/></svg></button>
         <button class="ib sm danger" data-act="delete" aria-label="Delete note" title="Delete note (Del)"><svg class="i s16"><use href="#i-trash"/></svg></button>
@@ -760,6 +778,15 @@
 
       <div id="rail-wrap">
         <div class="tray float" id="draw-tray" role="group" aria-label="Ink">
+          <div class="seg ink-kinds" role="group" aria-label="Ink tool">
+            <button data-kind="pen" aria-label="Pen" title="Pen"><svg class="i"><use href="#i-pen"/></svg></button>
+            <button data-kind="hl" aria-label="Highlighter" title="Highlighter"><svg class="i"><use href="#i-highlighter"/></svg></button>
+            <button data-kind="shape" aria-label="Shapes" title="Shapes (hold Shift for even shapes and straight lines)"><svg class="i"><use href="#i-shapes"/></svg></button>
+          </div>
+          <div class="seg shape-pick" id="shape-pick" role="group" aria-label="Shape"></div>
+          <div class="vdiv"></div>
+          <div class="seg sizes" id="ink-sizes" role="group" aria-label="Size"></div>
+          <div class="vdiv"></div>
           <div class="seg text" role="group" aria-label="Draw on">
             <button data-draw="draw" aria-pressed="true">On paper</button>
             <button data-draw="scribble" aria-pressed="false">On a note</button>
@@ -768,6 +795,15 @@
           <div id="swatches" style="display:flex;gap:2px"></div>
           <div class="vdiv"></div>
           <button class="btn ghost" id="clear-ink">Clear ink</button>
+        </div>
+        <div class="tray float" id="erase-tray" role="group" aria-label="Eraser">
+          <div class="seg text" role="group" aria-label="Erase what">
+            <button data-erase="ink" title="Erases pen, highlighter and shapes only">Ink only</button>
+            <button data-erase="all" title="Also deletes notes the eraser touches (pinned notes are kept)">Ink and notes</button>
+          </div>
+          <div class="vdiv"></div>
+          <div class="seg sizes" id="erase-sizes" role="group" aria-label="Eraser size"></div>
+          <span class="msg">Drag to erase · Undo brings it back</span>
         </div>
         <div class="tray float" id="badge-tray" role="group" aria-label="Badges">
           <div class="head"><span id="badge-hint">Drag onto a note · tap to filter the desk</span>
@@ -781,6 +817,7 @@
             <button class="ib lg" data-tool="pan" aria-label="Pan the desk (H)" title="Pan the desk (H)"><svg class="i s20"><use href="#i-hand"/></svg></button>
             <button class="ib lg" data-tool="text" aria-label="Text note (T)" title="Text note (T)"><svg class="i s20"><use href="#i-type"/></svg></button>
             <button class="ib lg" data-tool="draw" aria-label="Draw (P)" title="Draw (P)"><svg class="i s20"><use href="#i-pen"/></svg></button>
+            <button class="ib lg" data-tool="erase" aria-label="Eraser (E)" title="Eraser (E)"><svg class="i s20"><use href="#i-eraser"/></svg></button>
             <button class="ib lg" data-tool="link" aria-label="Link notes (L)" title="Link notes (L)"><svg class="i s20"><use href="#i-link"/></svg></button>
             <button class="ib lg" id="badge-btn" aria-label="Badges (B)" title="Badges (B)"><svg class="i s20"><use href="#i-tag"/></svg></button>
             <div class="vdiv"></div>
@@ -924,6 +961,7 @@
     activeId: stored?.activeId || 'board_main_desk',
     groupViews: {},
     tool: 'select', drawMode: 'draw', ink: stored?.ink || '#B42318',
+    pen: Object.assign({ kind: 'pen', shape: 'rect', size: 'm', hl: '#FFD84D', fill: false, erase: 'ink', eraseSize: 'm' }, stored?.pen || {}),
     sel: null, multi: new Set(), previewId: null, maxId: null, qlInfo: stored?.qlInfo ?? window.innerWidth >= 1100, editingId: null,
     pendingLink: null, linkGroup: stored?.linkGroup || 'Product Launch',
     search: '', badgeFilter: null, typeFilter: null,
@@ -942,7 +980,7 @@
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify({
           boards: S.boards, activeId: S.activeId, theme: S.theme, cloud: S.cloud,
-          autoSync: S.autoSync, showMap: S.showMap, linkGroup: S.linkGroup, ink: S.ink, qlInfo: S.qlInfo,
+          autoSync: S.autoSync, showMap: S.showMap, linkGroup: S.linkGroup, ink: S.ink, pen: S.pen, qlInfo: S.qlInfo,
         }));
       } catch { /* storage may be unavailable (private mode) */ }
       window.PaperDeskApp?.onSaved?.();
@@ -1272,13 +1310,90 @@
     const ring = n.badges.includes('circle')
       ? `<svg class="ring" viewBox="0 0 ${n.w} ${n.h}" preserveAspectRatio="none"><path d="M${n.w * .12} ${n.h * .02} C ${n.w * .45} ${-n.h * .16}, ${n.w * 1.02} ${-n.h * .08}, ${n.w * 1.04} ${n.h * .38} C ${n.w * 1.07} ${n.h * .86}, ${n.w * .74} ${n.h * 1.1}, ${n.w * .45} ${n.h * 1.07} C ${n.w * .1} ${n.h * 1.04}, ${-n.w * .06} ${n.h * .78}, ${-n.w * .04} ${n.h * .45} C ${-n.w * .02} ${n.h * .16}, ${n.w * .12} ${-n.h * .02}, ${n.w * .36} ${-n.h * .06}" fill="none" stroke="var(--danger)" stroke-opacity=".8" stroke-width="2.25" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>` : '';
     const scribbles = n.scribbles?.length
-      ? `<svg class="scribbles" width="${n.w}" height="${n.h}">${n.scribbles.map((s) => `<path d="${pathOf(s.points)}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</svg>` : '';
+      ? `<svg class="scribbles" width="${n.w}" height="${n.h}">${inkLayer(n.scribbles)}</svg>` : '';
     return `<div class="${cls}" data-id="${n.id}" tabindex="0" role="group" aria-label="${esc(label)}" style="left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px">
       <div class="card">${inner}</div>${ring}${scribbles}
       <span class="handle tl" data-h="tl"></span><span class="handle tr" data-h="tr"></span><span class="handle bl" data-h="bl"></span><span class="handle br" data-h="br"></span>
     </div>`;
   }
   const pathOf = (pts) => pts.length ? 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L') : '';
+  /* Ink: pen strokes (no kind, or kind 'pen'), highlighter ('hl') and shapes ('shape').
+     Every kind keeps its outline in `points`, so older code can still draw it. */
+  const HL_INKS = [['#FFD84D', 'Yellow'], ['#7BE495', 'Green'], ['#FF8FC7', 'Pink'], ['#7CC4FF', 'Blue'], ['#FFB35C', 'Orange']];
+  const SHAPES = [
+    ['line', 'Line', '<path d="M4 20 20 4"/>'],
+    ['arrow', 'Arrow', '<path d="M4 20 20 4M11 4h9v9"/>'],
+    ['rect', 'Rectangle', '<rect x="3.5" y="5.5" width="17" height="13" rx="1"/>'],
+    ['ellipse', 'Ellipse', '<ellipse cx="12" cy="12" rx="8.5" ry="6.5"/>'],
+    ['triangle', 'Triangle', '<path d="M12 4 21 19.5H3z"/>'],
+    ['diamond', 'Diamond', '<path d="M12 3 21 12 12 21 3 12z"/>'],
+    ['star', 'Star', '<path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/>'],
+  ];
+  const INK_W = { pen: { s: 1.6, m: 2.6, l: 4.5 }, hl: { s: 10, m: 18, l: 28 }, shape: { s: 1.6, m: 2.6, l: 4.5 } };
+  const ERASE_PX = { s: 8, m: 16, l: 30 };
+  function inkSvg(s) {
+    const d = pathOf(s.points || []); if (!d) return '';
+    if (s.kind === 'hl') return `<path class="hl" d="${d}" fill="none" stroke="${s.color}" stroke-opacity=".45" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const fill = s.kind === 'shape' && s.fill ? `fill="${s.color}" fill-opacity=".14"` : 'fill="none"';
+    return `<path d="${d}" ${fill} stroke="${s.color}" stroke-width="${s.width || 2.6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  // Highlighter sits under pen and shapes.
+  const inkLayer = (strokes = []) => strokes.filter((s) => s.kind === 'hl').map(inkSvg).join('') + strokes.filter((s) => s.kind !== 'hl').map(inkSvg).join('');
+  function shapePoints(shape, a, b, even, width) {
+    let [x1, y1] = a, [x2, y2] = b;
+    const r1 = (v) => Math.round(v * 2) / 2;
+    if (shape === 'line' || shape === 'arrow') {
+      if (even) { const ang = Math.round(Math.atan2(y2 - y1, x2 - x1) / (Math.PI / 4)) * (Math.PI / 4), len = Math.hypot(x2 - x1, y2 - y1); x2 = x1 + Math.cos(ang) * len; y2 = y1 + Math.sin(ang) * len; }
+      const pts = [[x1, y1], [x2, y2]];
+      if (shape === 'arrow') {
+        const ang = Math.atan2(y2 - y1, x2 - x1), hl = Math.min(Math.max(10, width * 3 + 6), Math.hypot(x2 - x1, y2 - y1) * 0.5), sp = 0.5;
+        pts.push([x2 - hl * Math.cos(ang - sp), y2 - hl * Math.sin(ang - sp)], [x2, y2], [x2 - hl * Math.cos(ang + sp), y2 - hl * Math.sin(ang + sp)]);
+      }
+      return pts.map(([x, y]) => [r1(x), r1(y)]);
+    }
+    if (even) { const sz = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)); x2 = x1 + Math.sign(x2 - x1 || 1) * sz; y2 = y1 + Math.sign(y2 - y1 || 1) * sz; }
+    const l = Math.min(x1, x2), r = Math.max(x1, x2), t = Math.min(y1, y2), bt = Math.max(y1, y2), cx = (l + r) / 2, cy = (t + bt) / 2, rx = (r - l) / 2, ry = (bt - t) / 2;
+    let pts;
+    if (shape === 'rect') pts = [[l, t], [r, t], [r, bt], [l, bt], [l, t]];
+    else if (shape === 'triangle') pts = [[cx, t], [r, bt], [l, bt], [cx, t]];
+    else if (shape === 'diamond') pts = [[cx, t], [r, cy], [cx, bt], [l, cy], [cx, t]];
+    else if (shape === 'star') { pts = []; for (let i = 0; i <= 10; i++) { const k = i % 10, rad = k % 2 ? 0.45 : 1, ang = -Math.PI / 2 + k * Math.PI / 5; pts.push([cx + Math.cos(ang) * rx * rad, cy + Math.sin(ang) * ry * rad]); } }
+    else { pts = []; for (let i = 0; i <= 48; i++) { const ang = (i / 48) * Math.PI * 2; pts.push([cx + Math.cos(ang) * rx, cy + Math.sin(ang) * ry]); } }
+    return pts.map(([x, y]) => [r1(x), r1(y)]);
+  }
+  function newStroke(p) {
+    const k = S.pen.kind, width = INK_W[k][S.pen.size] || INK_W[k].m;
+    if (k === 'hl') return { kind: 'hl', color: S.pen.hl, width, points: [p] };
+    if (k === 'shape') return { kind: 'shape', shape: S.pen.shape, fill: !!S.pen.fill, color: S.ink, width, points: [p, p] };
+    return { kind: 'pen', color: S.ink, width, points: [p] };
+  }
+  /* Eraser geometry: distance from a point to a segment, and splitting a stroke
+     where the eraser passes. Shapes are removed whole. */
+  function segDist(p, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len)) : 0;
+    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+  }
+  function eraseStrokes(strokes, p, r) {
+    let changed = false; const out = [];
+    for (const s of strokes) {
+      const pts = s.points || [], reach = r + (s.width || 2.6) / 2;
+      if (pts.length < 2 || !pts.some((q, i) => i && segDist(p, pts[i - 1], q) <= reach)) { out.push(s); continue; }
+      changed = true;
+      if (s.kind === 'shape') continue;
+      // Densify, drop the points under the eraser, keep the runs that are left.
+      const dense = [pts[0]], step = Math.max(1, r / 2);
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step);
+        for (let j = 1; j <= n; j++) dense.push([a[0] + (b[0] - a[0]) * j / n, a[1] + (b[1] - a[1]) * j / n]);
+      }
+      let run = [];
+      const flush = () => { if (run.length > 1) out.push({ ...s, points: run.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]) }); run = []; };
+      for (const q of dense) { if (Math.hypot(q[0] - p[0], q[1] - p[1]) <= reach) flush(); else run.push(q); }
+      flush();
+    }
+    return changed ? out : null;
+  }
 
   function linkGeom(s, d) {
     const scx = s.x + s.w / 2, scy = s.y + s.h / 2, dcx = d.x + d.w / 2, dcy = d.y + d.h / 2;
@@ -1318,7 +1433,7 @@
   }
   function renderInk() {
     const board = activeBoard();
-    $('#ink').innerHTML = (board.strokes || []).map((s) => `<path d="${pathOf(s.points)}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"/>`).join('') + (live.ink ? `<path d="${pathOf(live.ink.points)}" fill="none" stroke="${live.ink.color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>` : '');
+    $('#ink').innerHTML = inkLayer(board.strokes || []) + (live.ink ? inkSvg(live.ink) : '');
   }
 
   function applyTransform() {
@@ -1424,9 +1539,19 @@
   function renderRail() {
     $$('#rail [data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === S.tool)));
     $('#badge-btn').setAttribute('aria-pressed', String(S.trayOpen));
-    $('#draw-tray').classList.toggle('show', S.tool === 'draw');
+    const dt = $('#draw-tray'), P = S.pen;
+    dt.classList.toggle('show', S.tool === 'draw'); dt.classList.toggle('shape', P.kind === 'shape');
+    $('#erase-tray').classList.toggle('show', S.tool === 'erase');
     $$('#draw-tray [data-draw]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.draw === S.drawMode)));
-    $('#swatches').innerHTML = INKS.map(([c, name]) => `<button class="swatch" data-ink="${c}" aria-label="${name} ink" title="${name} ink" aria-pressed="${S.ink === c}" style="--c:${S.theme === 'dark' && c === '#1C1B18' ? 'var(--ink)' : c}"><i></i></button>`).join('');
+    $$('#draw-tray [data-kind]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.kind === P.kind)));
+    $$('#erase-tray [data-erase]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.erase === P.erase)));
+    $('#shape-pick').innerHTML = SHAPES.map(([id, name, svg]) => `<button data-shape="${id}" aria-label="${name}" title="${name}" aria-pressed="${P.shape === id}"><svg viewBox="0 0 24 24">${svg}</svg></button>`).join('')
+      + `<button data-fill aria-label="Filled shapes" title="Fill shapes with a light tint" aria-pressed="${!!P.fill}"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/></svg></button>`;
+    const dots = (attr, cur, px) => ['s', 'm', 'l'].map((k, i) => `<button data-${attr}="${k}" aria-label="${['Small', 'Medium', 'Large'][i]}" title="${['Small', 'Medium', 'Large'][i]}" aria-pressed="${cur === k}"><i class="sz" style="width:${px[i]}px;height:${px[i]}px"></i></button>`).join('');
+    $('#ink-sizes').innerHTML = dots('size', P.size, [4, 7, 11]);
+    $('#erase-sizes').innerHTML = dots('esize', P.eraseSize, [5, 9, 14]);
+    const pal = P.kind === 'hl' ? HL_INKS : INKS, cur = P.kind === 'hl' ? P.hl : S.ink;
+    $('#swatches').innerHTML = pal.map(([c, name]) => `<button class="swatch" data-ink="${c}" aria-label="${name}" title="${name}" aria-pressed="${cur === c}" style="--c:${S.theme === 'dark' && c === '#1C1B18' ? 'var(--ink)' : c}"><i></i></button>`).join('');
     $('#clear-ink').disabled = !(activeBoard().strokes || []).length;
     const tray = $('#badge-tray');
     tray.classList.toggle('show', S.trayOpen);
@@ -1527,7 +1652,7 @@
       case 'screenClip':
         html = `<div class="clipimg">${icon('image')}${m.dimensions ? `<span class="mono">${esc(m.dimensions)}</span>` : ''}</div>${notes()}`; break;
       case 'drawing':
-        html = `<div class="drawbox">${n.scribbles?.length ? `<svg viewBox="0 0 ${n.w} ${n.h}" preserveAspectRatio="xMidYMid meet">${n.scribbles.map((s) => `<path d="${pathOf(s.points)}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</svg>` : `<span class="muted">${icon('pen')}<br/>No ink yet — draw on the note with the Draw tool</span>`}</div>${notes()}`; break;
+        html = `<div class="drawbox">${n.scribbles?.length ? `<svg viewBox="0 0 ${n.w} ${n.h}" preserveAspectRatio="xMidYMid meet">${inkLayer(n.scribbles)}</svg>` : `<span class="muted">${icon('pen')}<br/>No ink yet — draw on the note with the Draw tool</span>`}</div>${notes()}`; break;
       case 'checklist': {
         const done = tasksDone(n), total = n.tasks.length;
         html = `<div class="progress"><div class="row" style="justify-content:space-between"><span class="muted">${done} of ${total} done</span><span class="mono muted">${total ? Math.round(done / total * 100) : 0}%</span></div><div class="track"><i style="width:${total ? done / total * 100 : 0}%"></i></div></div>
@@ -1978,11 +2103,12 @@
     if (n < 2 || S.tool !== 'select' || S.editingId) { bar?.classList.remove('show'); return; }
     if (!bar) {
       bar = document.createElement('div'); bar.id = 'multi-bar'; bar.className = 'overlay float';
-      bar.innerHTML = '<span class="count"></span><button type="button" data-multi="delete">Delete</button><button type="button" data-multi="clear">Clear</button>';
+      bar.innerHTML = '<span class="count"></span><button type="button" data-multi="send">Send to…</button><button type="button" data-multi="delete">Delete</button><button type="button" data-multi="clear">Clear</button>';
       bar.addEventListener('pointerdown', (e) => e.stopPropagation());
       bar.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-multi]'); if (!btn) return;
-        if (btn.dataset.multi === 'delete') deleteNotes(selectedIds()); else setSelection([]);
+        if (btn.dataset.multi === 'send') window.PaperDeskSend?.open('selection');
+        else if (btn.dataset.multi === 'delete') deleteNotes(selectedIds()); else setSelection([]);
       });
       vpEl.appendChild(bar);
     }
@@ -2017,12 +2143,15 @@
     const v = viewOf(activeBoard());
     menuClose?.();
 
-    if (S.tool === 'draw' && (S.drawMode === 'draw' || !noteEl)) {
-      live.ink = { color: S.ink, points: [[w.x, w.y]] };
-      gesture = { kind: 'ink' };
-    } else if (S.tool === 'draw' && S.drawMode === 'scribble' && noteEl) {
-      const n = findNote(noteEl.dataset.id);
-      gesture = { kind: 'scribble', note: n, stroke: { color: S.ink, width: 2.6, points: [[w.x - n.x, w.y - n.y]] } };
+    if (S.tool === 'draw') {
+      const onNote = S.drawMode === 'scribble' && noteEl ? findNote(noteEl.dataset.id) : null;
+      const o = onNote ? { x: onNote.x, y: onNote.y } : { x: 0, y: 0 };
+      const p = [w.x - o.x, w.y - o.y];
+      gesture = { kind: 'ink', note: onNote, o, start: p, stroke: newStroke(p) };
+      live.ink = onNote ? null : gesture.stroke;
+    } else if (S.tool === 'erase') {
+      gesture = { kind: 'erase', last: w, hit: new Set(), undone: false };
+      eraseAt(gesture, w);
     } else if (handle && noteEl) {
       const n = findNote(noteEl.dataset.id);
       pushUndo();
@@ -2106,16 +2235,56 @@
       const el = $(`.note[data-id="${n.id}"]`); if (el) Object.assign(el.style, { left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' });
       renderLinks(); positionNoteBar();
     } else if (gesture.kind === 'ink') {
-      const w = toWorld(e.clientX, e.clientY); live.ink.points.push([w.x, w.y]); renderInk();
-    } else if (gesture.kind === 'scribble') {
-      const w = toWorld(e.clientX, e.clientY); const n = gesture.note; gesture.stroke.points.push([w.x - n.x, w.y - n.y]);
-      const el = $(`.note[data-id="${n.id}"]`);
+      const g = gesture, w = toWorld(e.clientX, e.clientY), p = [w.x - g.o.x, w.y - g.o.y], st = g.stroke;
+      if (st.kind === 'shape') st.points = shapePoints(st.shape, g.start, p, e.shiftKey, st.width);
+      else if (e.shiftKey) st.points = [g.start, p];
+      else st.points.push(p);
+      if (!g.note) { renderInk(); return; }
+      const el = $(`.note[data-id="${g.note.id}"]`); if (!el) return;
       let svg = $('.scribbles.live', el);
-      if (!svg) { el.insertAdjacentHTML('beforeend', `<svg class="scribbles live" width="${n.w}" height="${n.h}"><path fill="none" stroke="${gesture.stroke.color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`); svg = $('.scribbles.live', el); }
-      svg.firstChild.setAttribute('d', pathOf(gesture.stroke.points));
+      if (!svg) { el.insertAdjacentHTML('beforeend', `<svg class="scribbles live" width="${g.note.w}" height="${g.note.h}"></svg>`); svg = $('.scribbles.live', el); }
+      svg.innerHTML = inkSvg(st);
+    } else if (gesture.kind === 'erase') {
+      eraseAt(gesture, toWorld(e.clientX, e.clientY));
     }
   });
 
+  /* Eraser: walks from the last pointer position to this one in small steps,
+     splitting pen and highlighter strokes, removing shapes whole, and (in
+     "Ink and notes" mode) marking notes to delete when the drag ends. */
+  function eraseAt(g, w) {
+    const z = viewOf(activeBoard()).zoom, r = (ERASE_PX[S.pen.eraseSize] || 16) / z;
+    const n = Math.max(1, Math.ceil(Math.hypot(w.x - g.last.x, w.y - g.last.y) / (r / 2)));
+    const board = activeBoard(), notes = visibleNotes(board);
+    const touched = new Set(); let boardChanged = false;
+    const firstChange = () => { if (!g.undone) { pushUndo(); g.undone = true; } };
+    for (let i = 1; i <= n; i++) {
+      const p = [g.last.x + (w.x - g.last.x) * (i / n), g.last.y + (w.y - g.last.y) * (i / n)];
+      const res = eraseStrokes(board.strokes || [], p, r);
+      if (res) { firstChange(); board.strokes = res; boardChanged = true; }
+      for (const note of notes) {
+        if (note.type !== 'drawing' && note.scribbles?.length && p[0] >= note.x - r && p[0] <= note.x + note.w + r && p[1] >= note.y - r && p[1] <= note.y + note.h + r) {
+          const rn = eraseStrokes(note.scribbles, [p[0] - note.x, p[1] - note.y], r);
+          if (rn) { firstChange(); note.scribbles = rn; touched.add(note); }
+        }
+        const inside = p[0] >= note.x && p[0] <= note.x + note.w && p[1] >= note.y && p[1] <= note.y + note.h;
+        if (S.pen.erase === 'all' && inside && !note.badges.includes('pin') && !g.hit.has(note.id)) {
+          g.hit.add(note.id); $(`.note[data-id="${note.id}"]`)?.classList.add('erase-hit');
+        }
+      }
+    }
+    g.last = w;
+    if (boardChanged) renderInk();
+    for (const note of touched) { const svg = $(`.note[data-id="${note.id}"] > svg.scribbles:not(.live)`); if (svg) svg.innerHTML = inkLayer(note.scribbles); }
+  }
+  function moveEraseRing(e) {
+    if (S.tool !== 'erase') return;
+    let ring = $('#erase-ring');
+    if (!ring) { ring = document.createElement('div'); ring.id = 'erase-ring'; vpEl.appendChild(ring); }
+    const r = vpEl.getBoundingClientRect(), d = (ERASE_PX[S.pen.eraseSize] || 16) * 2;
+    Object.assign(ring.style, { left: e.clientX - r.left + 'px', top: e.clientY - r.top + 'px', width: d + 'px', height: d + 'px' });
+  }
+  vpEl.addEventListener('pointermove', moveEraseRing);
   function endPointer(e) {
     pointers.delete(e.pointerId);
     vpEl.classList.remove('panning');
@@ -2142,11 +2311,23 @@
     } else if (g.kind === 'resize') {
       Object.assign(g.note, { x: snap(g.note.x), y: snap(g.note.y), w: snap(g.note.w), h: snap(g.note.h) }); renderAll({ preview: false });
     } else if (g.kind === 'ink') {
-      if (live.ink.points.length > 1) { pushUndo(); const ab = activeBoard(); ab.strokes = ab.strokes || []; ab.strokes.push({ color: live.ink.color, width: 2.6, points: live.ink.points }); }
-      live.ink = null; renderInk(); renderRail(); save();
-    } else if (g.kind === 'scribble') {
-      if (g.stroke.points.length > 1) { pushUndo(); g.note.scribbles = g.note.scribbles || []; g.note.scribbles.push(g.stroke); }
-      renderCanvas(); save();
+      const st = g.stroke, xs = st.points.map((q) => q[0]), ys = st.points.map((q) => q[1]);
+      const big = st.points.length > 1 && Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) >= 2;
+      live.ink = null;
+      if (big) { pushUndo(); if (g.note) (g.note.scribbles = g.note.scribbles || []).push(st); else { const ab = activeBoard(); (ab.strokes = ab.strokes || []).push(st); } }
+      if (g.note) renderCanvas(); else renderInk();
+      renderRail(); save();
+    } else if (g.kind === 'erase') {
+      $$('.note.erase-hit').forEach((el) => el.classList.remove('erase-hit'));
+      if (g.hit.size) {
+        if (!g.undone) pushUndo();
+        const gone = g.hit;
+        for (const b of S.boards) { b.notes = b.notes.filter((n) => !gone.has(n.id)); b.links = b.links.filter((l) => !gone.has(l.src) && !gone.has(l.dst)); }
+        if (gone.has(S.sel)) S.sel = null;
+        S.multi.clear();
+        renderAll(); toast(gone.size === 1 ? 'Erased 1 note' : `Erased ${gone.size} notes`, true); return;
+      }
+      if (g.undone) { renderCanvas(); renderRail(); save(); }
     }
   }
   vpEl.addEventListener('pointerup', endPointer);
@@ -2435,6 +2616,7 @@
     else if (act === 'open') openNative(n);
     else if (act === 'link') linkDialog(n.id);
     else if (act === 'delete') deleteNote(n.id);
+    else if (act === 'send') window.PaperDeskSend?.open('note', n.id);
     else if (act === 'badges') showMenu(b, BADGES.map((x) => ({ label: x.label, icon: x.icon, checked: n.badges.includes(x.id), action: () => toggleBadge(n.id, x.id) })));
     else if (act === 'move') {
       const owner = ownerBoard(n.id);
@@ -2455,7 +2637,7 @@
 
   // Rail & trays
   $('#rail').addEventListener('click', (e) => {
-    const t = e.target.closest('[data-tool]'); if (t) { setTool(t.dataset.tool === 'draw' && S.tool === 'draw' ? 'select' : t.dataset.tool); }
+    const t = e.target.closest('[data-tool]'); if (t) { setTool((t.dataset.tool === 'draw' || t.dataset.tool === 'erase') && S.tool === t.dataset.tool ? 'select' : t.dataset.tool); }
   });
   $('#badge-btn').addEventListener('click', () => { if (S.tool !== 'select') setTool('select'); S.trayOpen = !S.trayOpen; renderRail(); });
   $('#close-tray').addEventListener('click', () => { S.trayOpen = false; renderRail(); });
@@ -2465,7 +2647,14 @@
   $('#fab').addEventListener('click', () => openPalette());
   $('#draw-tray').addEventListener('click', (e) => {
     const m = e.target.closest('[data-draw]'); if (m) { S.drawMode = m.dataset.draw; renderCanvas(); renderRail(); return; }
-    const sw = e.target.closest('[data-ink]'); if (sw) { S.ink = sw.dataset.ink; renderRail(); save(); return; }
+    const sw = e.target.closest('[data-ink]'); if (sw) { if (S.pen.kind === 'hl') S.pen.hl = sw.dataset.ink; else S.ink = sw.dataset.ink; renderRail(); save(); return; }
+    const pk = e.target.closest('[data-kind],[data-shape],[data-fill],[data-size],[data-esize],[data-erase]');
+    if (pk) {
+      const d = pk.dataset, P = S.pen;
+      if (d.kind) P.kind = d.kind; else if (d.shape) { P.shape = d.shape; P.kind = 'shape'; } else if ('fill' in d) P.fill = !P.fill;
+      else if (d.size) P.size = d.size; else if (d.esize) P.eraseSize = d.esize; else if (d.erase) P.erase = d.erase;
+      renderRail(); save(); return;
+    }
     if (e.target.closest('#clear-ink')) { pushUndo(); activeBoard().strokes = []; renderInk(); renderRail(); toast('Ink cleared', true); }
   });
   $('#badge-chips').addEventListener('click', (e) => {
@@ -2603,10 +2792,11 @@
     if (mod || e.altKey) return;
     if (e.shiftKey && e.code === 'Digit1') { fitTo(visibleNotes()); return; }
     if (k === 'f' && S.sel) { e.preventDefault(); maximize(S.sel); return; }
-    const tools = { v: 'select', h: 'pan', t: 'text', p: 'draw', l: 'link' };
+    const tools = { v: 'select', h: 'pan', t: 'text', p: 'draw', e: 'erase', l: 'link' };
     if (tools[k] && activeBoard().viewMode === 'freeform') { setTool(tools[k]); return; }
     if (k === 'b') { if (S.tool !== 'select') setTool('select'); S.trayOpen = !S.trayOpen; renderRail(); return; }
     if (k === 'n') { e.preventDefault(); openPalette(); return; }
+    if (k === 's' && window.PaperDeskSend) { e.preventDefault(); window.PaperDeskSend.open(); return; }
     if (e.key === ' ' && S.sel) { e.preventDefault(); openPreview(S.sel); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && S.multi.size > 1) { e.preventDefault(); deleteNotes(selectedIds()); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel) { e.preventDefault(); deleteNote(S.sel); }
@@ -2643,7 +2833,7 @@
     activeBoard, viewOf, homeBoard, findNote, ownerBoard, linksFor, visibleNotes,
     addNote, freeSpot, deleteNote, toggleBadge, createLink, viewCenter,
     shortAgo, timeAgo, host, emailOf, nameFromEmail, initials, fileName, pathOf,
-    renderAll, renderTopbar, renderGroupBar, renderMain, renderCanvas, renderLinks, renderInk,
+    renderAll, renderTopbar, renderGroupBar, renderMain, renderCanvas, renderLinks, renderInk, inkSvg, inkLayer, showMenu,
     applyTransform, positionNoteBar, drawOverview, renderRail, renderStructured, renderViewers,
     toWorld, zoomAt, animateView, fitTo, reveal, zoomStep, resetZoom,
     select, setSelection, selectedIds, deleteNotes, commitEdit, startEdit, switchTo, setTool, setViewGroup,
@@ -2674,5 +2864,9 @@
   <script src="sync-core.js"></script>
   <script src="sync-cloud.js"></script>
   <script src="sync.js"></script>
+  <script src="send-formats.js"></script>
+  <script src="send-catalog.js"></script>
+  <script src="send-connectors.js"></script>
+  <script src="send.js"></script>
 </body>
 </html>

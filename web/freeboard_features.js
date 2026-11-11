@@ -1157,7 +1157,7 @@
 
       case 'drawing': {
         const activeInk = m.penColor || S.ink || '#2D55D9';
-        const paths = (n.scribbles || []).map((s) => `<path d="${pathOf(s.points)}" fill="none" stroke="${s.color}" stroke-width="${s.width || 2.6}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+        const paths = App.inkLayer(n.scribbles || []);
         return `
           <div class="pd-draw-wrap" data-draw-pad="${n.id}">
             <svg class="pd-draw-surface" viewBox="0 0 ${Math.max(160, n.w - 26)} ${Math.max(70, n.h - 76)}" preserveAspectRatio="none">
@@ -1388,7 +1388,7 @@
     const ring = n.badges.includes('circle')
       ? `<svg class="ring" viewBox="0 0 ${n.w} ${n.h}" preserveAspectRatio="none"><path d="M${n.w * .12} ${n.h * .02} C ${n.w * .45} ${-n.h * .16}, ${n.w * 1.02} ${-n.h * .08}, ${n.w * 1.04} ${n.h * .38} C ${n.w * 1.07} ${n.h * .86}, ${n.w * .74} ${n.h * 1.1}, ${n.w * .45} ${n.h * 1.07} C ${n.w * .1} ${n.h * 1.04}, ${-n.w * .06} ${n.h * .78}, ${-n.w * .04} ${n.h * .45} C ${-n.w * .02} ${n.h * .16}, ${n.w * .12} ${-n.h * .02}, ${n.w * .36} ${-n.h * .06}" fill="none" stroke="var(--danger)" stroke-opacity=".8" stroke-width="2.25" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>` : '';
     const scribbles = n.type !== 'drawing' && n.scribbles?.length
-      ? `<svg class="scribbles" width="${n.w}" height="${n.h}">${n.scribbles.map((s) => `<path d="${pathOf(s.points)}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</svg>` : '';
+      ? `<svg class="scribbles" width="${n.w}" height="${n.h}">${App.inkLayer(n.scribbles)}</svg>` : '';
 
     return `<div class="${cls}" data-id="${n.id}" tabindex="0" role="group" aria-label="${esc(t.label + ': ' + (n.title || 'Untitled'))}" style="left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px">
       <div class="card">${inner}</div>${ring}${scribbles}
@@ -1940,6 +1940,7 @@
           { label: 'Save Desk to File…', icon: 'download', hint: MOD + 'S', action: saveWorkspaceToFile },
           { label: 'Open Desk File…', icon: 'file', action: openWorkspaceFromFile },
           { label: 'Export Desk as Markdown…', icon: 'copy', action: exportDeskMarkdown },
+          { label: 'Send Desk to Another App…', icon: 'send', action: () => window.PaperDeskSend?.open('desk') },
           { sep: true },
           { label: 'Cloud Sync & Backup Settings…', icon: 'cloud', action: enhancedSyncDialog },
           { label: 'Install PaperDesk as App (PWA)…', icon: 'download', action: triggerOrShowPwaInstall },
@@ -1969,6 +1970,7 @@
     return [
       { head: `${t.label}: ${n.title || 'Untitled'}`, icon: t.icon },
       { label: 'Quick Look Preview', icon: 'eye', hint: 'Space', action: () => openPreview(n.id) },
+      { label: 'Send to Another App…', icon: 'send', hint: 'S', action: () => window.PaperDeskSend?.open('note', n.id) },
       { label: 'Expand to Full Canvas', icon: 'expand', hint: 'F', action: () => maximize(n.id) },
       { label: execLabel, icon: 'external', action: () => enhancedOpenNative(n) },
       ...(n.type === 'voice' ? [{ label: n.recording ? 'Stop Microphone Recording' : 'Record Microphone Audio', icon: 'mic', action: () => toggleVoiceRecording(n) }] : []),
@@ -2227,6 +2229,7 @@
         <button type="button" class="btn" data-bind-file>${icon('file', 's16')}${fileHandle ? `Save again to ${esc(fileHandle.name)}` : 'Save to a file…'}</button>
         <button type="button" class="btn" data-open-file>${icon('file', 's16')}Open File from Disk…</button>
         <button type="button" class="btn" data-export-md>${icon('file', 's16')}Export Markdown</button>
+        <button type="button" class="btn" data-send-to>${icon('send', 's16')}Send to another app…</button>
         <button type="button" class="btn" data-install-pwa>${icon('download', 's16')}Install as App (Desktop / Mobile)…</button>
       </div>
       <label class="switch" style="flex-direction:row;font-size:13.5px;color:var(--ink)">
@@ -2256,6 +2259,7 @@
         dl.close();
         await openWorkspaceFromFile();
       });
+      dl.querySelector('[data-send-to]')?.addEventListener('click', () => { dl.close(); window.PaperDeskSend?.open('desk'); });
       dl.querySelector('[data-export-md]').addEventListener('click', () => {
         exportDeskMarkdown();
       });

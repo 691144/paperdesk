@@ -225,7 +225,9 @@
 
   /* ---------- start ---------- */
   (async () => {
-    const back = await Cloud.handleRedirect();
+    let back = await Cloud.handleRedirect();
+    // Sign-ins started by Send to are finished by the Send dialog, not by sync.
+    if (back && back.purpose && back.purpose !== 'sync') back = null;
     if (back) {
       if (back.ok) { if (st.type !== back.provider) { st.type = back.provider; ls.set('pd.sync.provider', back.provider); } if (!back.silent) toast(`Connected to ${NAMES[back.provider]}`); ls.set('pd.auth.silentAt', null); }
       else if (!back.silent) toast(`${NAMES[back.provider]} sign-in didn't finish: ${back.error}`);
