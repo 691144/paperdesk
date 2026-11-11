@@ -1,7 +1,7 @@
 // PaperDesk service worker: works offline, and picks up new versions on the
 // next launch. App files are fetched from the network first (falling back to
 // the cache when offline or slow); web fonts are cached once.
-const CACHE = 'paperdesk-v6';
+const CACHE = 'paperdesk-v7';
 const SHELL = [
   './',
   './index.html',
