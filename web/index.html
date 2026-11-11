@@ -184,16 +184,16 @@
     #viewport.tool-draw, #viewport.tool-scribble { cursor: crosshair; }
     #viewport.tool-link .note { cursor: copy; }
     #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
-    #links, #ink { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+    #links, #ink, #ink-top { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 
     .note { position: absolute; border-radius: 10px; touch-action: none; }
     .note .card {
       position: absolute; inset: 0; padding: 12px; border-radius: 10px; overflow: hidden;
-      background: var(--paper); border: 1px solid transparent;
+      background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1);
       display: flex; flex-direction: column; gap: 6px;
       transition: background .12s, border-color .12s, box-shadow .12s, transform .12s;
     }
-    .note:hover .card { background: var(--surface); border-color: var(--line-2); }
+    .note:hover .card { border-color: var(--line-2); box-shadow: var(--shadow-2); }
     #marquee { position: absolute; z-index: 30; pointer-events: none; border: 1.5px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 4px; }
     #multi-bar { position: absolute; z-index: 40; left: 50%; top: 68px; transform: translateX(-50%); display: none; align-items: center; gap: 6px; padding: 6px 8px 6px 14px; border-radius: 999px; font-size: 13px; }
     #multi-bar.show { display: flex; }
@@ -201,7 +201,7 @@
     #multi-bar .count { font-weight: 600; margin-right: 6px; }
     #multi-bar button { border: 1px solid var(--line-2); background: var(--paper); color: inherit; border-radius: 999px; padding: 4px 12px; font: inherit; cursor: pointer; }
     #multi-bar button[data-multi="delete"] { color: #B42318; }
-    .note.selected .card { background: var(--paper); border: 1.5px solid var(--accent); }
+    .note.selected .card { background: var(--surface); border: 1.5px solid var(--accent); }
     .note.dragging .card { background: var(--surface); box-shadow: var(--shadow-2); transform: rotate(-1.5deg); border-color: transparent; }
     .note.drop .card, .note.link-source .card { background: var(--accent-soft); border: 2px solid var(--accent); }
     .note.editing .card { background: var(--surface); border: 1.5px solid var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
@@ -320,8 +320,8 @@
     .seg.shape-pick svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linejoin: round; stroke-linecap: round; }
     .seg.shape-pick [data-fill][aria-pressed="true"] svg { fill: color-mix(in srgb, currentColor 30%, transparent); }
     #erase-tray .msg { font-size: 12px; color: var(--ink-3); padding: 0 4px; }
-    #ink path.hl, .scribbles path.hl, .drawbox path.hl { mix-blend-mode: multiply; }
-    [data-theme="dark"] #ink path.hl, [data-theme="dark"] .scribbles path.hl { mix-blend-mode: screen; }
+    #ink-top path.hl, #ink path.hl, .scribbles path.hl, .drawbox path.hl { mix-blend-mode: multiply; }
+    [data-theme="dark"] #ink-top path.hl, [data-theme="dark"] #ink path.hl, [data-theme="dark"] .scribbles path.hl { mix-blend-mode: screen; }
     #viewport.tool-erase, #viewport.tool-erase .note, #viewport.tool-erase .note * { cursor: none !important; }
     #erase-ring { position: absolute; border-radius: 50%; border: 1.5px solid var(--ink-2); background: color-mix(in srgb, var(--paper) 55%, transparent); pointer-events: none; z-index: 30; transform: translate(-50%, -50%); display: none; }
     #viewport.tool-erase #erase-ring { display: block; }
@@ -723,6 +723,7 @@
           <svg id="ink"></svg>
           <svg id="links"></svg>
           <div id="notes"></div>
+          <svg id="ink-top"></svg>
           <div id="labels"></div>
         </div>
       </div>
@@ -1439,7 +1440,9 @@
   }
   function renderInk() {
     const board = activeBoard();
-    $('#ink').innerHTML = inkLayer(board.strokes || []) + (live.ink ? inkSvg(live.ink) : '');
+    // Notes are opaque now, so ink drawn on the paper sits above them (highlighter first, so it marks text without hiding it).
+    $('#ink').innerHTML = '';
+    $('#ink-top').innerHTML = inkLayer(board.strokes || []) + (live.ink ? inkSvg(live.ink) : '');
   }
 
   function applyTransform() {
