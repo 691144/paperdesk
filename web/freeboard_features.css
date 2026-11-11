@@ -1,0 +1,758 @@
+/* ====================================================================
+   PaperDesk Freeboard — Enhanced Context Menu, On-Canvas Note Controls,
+   Rich Previews, Screen Snipper, Live Reminders & Cloud Sync Styles
+   ==================================================================== */
+
+/* Custom Right-Click Context Menu & Submenus */
+.pd-ctx-menu,
+.pd-ctx-sub {
+  position: fixed;
+  z-index: 95;
+  min-width: 236px;
+  max-width: 300px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-2);
+  display: none;
+  user-select: none;
+  -webkit-user-select: none;
+  backdrop-filter: blur(12px);
+}
+.pd-ctx-menu.show,
+.pd-ctx-sub.show {
+  display: block;
+  animation: pdMenuFadeIn 0.12s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pdMenuFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-3px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.pd-ctx-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 5px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.pd-ctx-head span {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-ctx-sec {
+  padding: 5px 10px 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+.pd-ctx-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 2px;
+}
+.pd-ctx-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.pd-ctx-item:hover,
+.pd-ctx-item:focus-visible,
+.pd-ctx-item.active-sub {
+  background: var(--accent-soft);
+  color: var(--accent);
+  outline: none;
+}
+.pd-ctx-item.danger {
+  color: var(--danger);
+}
+.pd-ctx-item.danger:hover,
+.pd-ctx-item.danger:focus-visible {
+  background: var(--red-bg);
+  color: var(--danger);
+}
+.pd-ctx-item:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.pd-ctx-item .pd-ic {
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  color: var(--ink-2);
+}
+.pd-ctx-item:hover .pd-ic,
+.pd-ctx-item.active-sub .pd-ic {
+  color: inherit;
+}
+.pd-ctx-item .pd-lbl {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-ctx-item .pd-hint {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  margin-left: 8px;
+}
+.pd-ctx-item .pd-chev {
+  width: 14px;
+  height: 14px;
+  color: var(--ink-3);
+  margin-left: auto;
+}
+.pd-ctx-item[aria-checked="true"]::after {
+  content: "✓";
+  font-weight: 700;
+  color: var(--accent);
+  margin-left: auto;
+}
+
+/* Inline Editable Title & Body on All Canvas Note Containers */
+.note .pd-inline-title {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  font-family: var(--sans);
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  outline: none;
+  flex: none;
+  transition: background 0.12s, border-color 0.12s;
+}
+.note .pd-inline-title:hover {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.note .pd-inline-title:focus {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.note .pd-inline-title::placeholder {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.note .pd-inline-body {
+  flex: 1;
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  resize: none;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  outline: none;
+}
+.note .pd-inline-body:hover {
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.note .pd-inline-body:focus {
+  background: var(--surface);
+  border-color: var(--line-2);
+}
+
+/* On-Canvas Checklist Controls */
+.pd-cl-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.pd-cl-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+  flex: none;
+  margin-bottom: 2px;
+}
+.pd-cl-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.18s;
+}
+.pd-cl-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 23px;
+  padding: 1px 2px;
+  border-radius: 5px;
+}
+.pd-cl-row:hover {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.pd-cl-row input[type="checkbox"] {
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex: none;
+}
+.pd-cl-row .pd-task-in {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+  padding: 1px 2px;
+}
+.pd-cl-row.done .pd-task-in {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.pd-cl-row .pd-task-del {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-3);
+  display: none;
+  place-items: center;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+.pd-cl-row:hover .pd-task-del {
+  display: inline-grid;
+}
+.pd-cl-row .pd-task-del:hover {
+  color: var(--danger);
+  background: var(--red-bg);
+}
+.pd-cl-add {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 3px;
+  border-top: 1px dashed var(--line);
+  flex: none;
+}
+.pd-cl-add input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: var(--ink);
+  outline: none;
+  padding: 2px 0;
+}
+
+/* On-Canvas Voice Recorder & Mini Audio Player */
+.pd-audio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+.pd-player-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  flex: none;
+}
+.pd-rec-btn {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 13px;
+  border: 1px solid var(--red);
+  background: var(--red-bg);
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.pd-rec-btn.recording {
+  background: var(--red);
+  color: #fff;
+  animation: pdPulse 1s infinite;
+}
+@keyframes pdPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+.pd-rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pd-wave-scrub {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.pd-wave-scrub i {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--line-2);
+  transition: height 0.1s, background 0.1s;
+}
+.pd-wave-scrub i.on {
+  background: var(--accent);
+}
+.pd-wave-scrub.recording i.on {
+  background: var(--red);
+}
+.pd-time-lbl {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  flex: none;
+}
+
+/* On-Canvas Drawing Pad Container */
+.pd-draw-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 68px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pd-draw-surface {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+  display: block;
+}
+.pd-draw-bar {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.14s;
+}
+.note:hover .pd-draw-bar,
+.note.selected .pd-draw-bar,
+.pd-draw-wrap:focus-within .pd-draw-bar {
+  opacity: 1;
+}
+.pd-ink-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  background: var(--c);
+}
+.pd-ink-dot.active {
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+.pd-draw-act {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  color: var(--ink-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.pd-draw-act:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* On-Canvas Reminder / Alarm Template */
+.pd-alarm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+}
+.pd-alarm-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pd-alarm-time-in {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 2px 6px;
+  outline: none;
+}
+.pd-alarm-date-in {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 3px 5px;
+  outline: none;
+  max-width: 112px;
+}
+.pd-alarm-toggle {
+  margin-left: auto;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pd-alarm-toggle.armed {
+  background: var(--amber-bg);
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 35%, transparent);
+}
+.pd-alarm-toggle.ringing {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+  animation: pdPulse 0.8s infinite;
+}
+.pd-alarm-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* On-Canvas Calendar & Invitation Controls */
+.pd-cal-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.pd-cal-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pd-mini-in {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  padding: 2px 6px;
+  font-size: 11.5px;
+  color: var(--ink);
+  outline: none;
+}
+.pd-mini-in:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.pd-rsvp-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+}
+.pd-rsvp-btn {
+  height: 23px;
+  padding: 0 7px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.pd-rsvp-btn.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+/* On-Canvas Stamp Picker */
+.pd-stamp-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 54px;
+}
+.pd-stamp-glyph {
+  font-size: 34px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  transition: transform 0.15s;
+  cursor: pointer;
+}
+.pd-stamp-glyph:hover {
+  transform: scale(1.12) rotate(-4deg);
+}
+.pd-stamp-picker {
+  display: none;
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+  margin-top: 4px;
+}
+.note:hover .pd-stamp-picker,
+.note.selected .pd-stamp-picker {
+  display: flex;
+}
+.pd-stamp-picker button {
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  padding: 2px 3px;
+  border-radius: 4px;
+}
+.pd-stamp-picker button:hover,
+.pd-stamp-picker button.on {
+  background: var(--accent-soft);
+}
+
+/* Rich Document / PDF / Office / Image / Web Previews */
+.pd-doc-thumb {
+  flex: 1;
+  min-height: 64px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.pd-doc-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #fff;
+  z-index: 2;
+}
+.pd-doc-badge.pdf { background: #D92D20; }
+.pd-doc-badge.word { background: #2B579A; }
+.pd-doc-badge.excel { background: #1D6F42; }
+.pd-doc-badge.ppt { background: #D24726; }
+.pd-doc-badge.file { background: #475467; }
+
+.pd-mini-sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  background: var(--surface);
+  flex: 1;
+}
+.pd-mini-sheet th {
+  background: var(--green-bg);
+  color: var(--green);
+  font-weight: 600;
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.pd-mini-sheet td {
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+
+.pd-mini-page {
+  margin: 6px auto 0;
+  width: 86%;
+  flex: 1;
+  background: var(--surface);
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+.pd-mini-page b {
+  font-size: 10px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-mini-page span {
+  font-size: 8.5px;
+  line-height: 1.35;
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pd-img-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Interactive Screen Clip Snipper Overlay */
+#pd-snipper-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  cursor: crosshair;
+  background: rgba(15, 23, 42, 0.28);
+  display: none;
+  user-select: none;
+}
+#pd-snipper-overlay.show {
+  display: block;
+}
+.pd-snip-bar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  z-index: 122;
+}
+#pd-snip-rect {
+  position: fixed;
+  border: 2px solid var(--accent);
+  background: rgba(45, 85, 217, 0.12);
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.36);
+  pointer-events: none;
+  display: none;
+  z-index: 121;
+}
+
+/* Live Reminder Alert Modal */
+#pd-alarm-modal {
+  position: fixed;
+  right: 24px;
+  top: 72px;
+  z-index: 110;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 2px solid var(--red);
+  box-shadow: var(--shadow-2);
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+#pd-alarm-modal.show {
+  display: flex;
+  animation: pdMenuFadeIn 0.2s ease-out;
+}

@@ -1,0 +1,15 @@
+# Kept on this PC only, not published
+_archive_flutter/
+_backup_before_redesign/
+*.zip
+*.lnk
+
+# Local credentials and packaging
+cloud.env.json
+dist/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.log

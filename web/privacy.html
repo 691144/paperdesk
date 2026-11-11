@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PaperDesk Privacy</title>
+  <style>
+    :root { --paper: #F6F4EF; --ink: #1C1B18; --ink-3: #6B6760; --line: #E3DFD6; --accent: #2D55D9; color-scheme: light; }
+    @media (prefers-color-scheme: dark) { :root { --paper: #1D1F22; --ink: #ECEAE5; --ink-3: #A29E96; --line: #33363B; --accent: #8FA8FF; color-scheme: dark; } }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 28px 0 6px; }
+    p, li { color: var(--ink); } .muted { color: var(--ink-3); font-size: 14px; }
+    a { color: var(--accent); } code { font-size: 14px; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>PaperDesk privacy</h1>
+  <p class="muted">Last updated 10 November 2026</p>
+
+  <h2>Short version</h2>
+  <p>PaperDesk has no accounts, no servers of its own, no analytics and no ads. Your desks stay on your device. If you turn on sync, they are stored in your own Google Drive or OneDrive, and only you can see them.</p>
+
+  <h2>What is stored where</h2>
+  <ul>
+    <li><b>On your device:</b> your desks, notes and attachments are saved in your browser's storage for this site. Nothing is sent anywhere unless you turn on sync.</li>
+    <li><b>With sync on:</b> PaperDesk saves a file named <code>paperdesk-sync.json</code>, plus one file per attachment, in a folder that only PaperDesk can use: Google Drive's hidden app-data folder, or <code>Apps/PaperDesk</code> in OneDrive. Your device talks to Google or Microsoft directly; the copies are never sent to anyone else.</li>
+    <li><b>Sign-in:</b> the sign-in token from Google or Microsoft, and your account's email address (shown in the Sync dialog), are kept in your browser's storage on that device.</li>
+  </ul>
+
+  <h2>What PaperDesk can access</h2>
+  <ul>
+    <li><b>Google Drive:</b> the <code>drive.appdata</code> permission, which covers only PaperDesk's own hidden folder. PaperDesk cannot see, read or change any of your other files.</li>
+    <li><b>OneDrive:</b> the <code>Files.ReadWrite.AppFolder</code> permission, which covers only PaperDesk's own app folder, plus the standard sign-in permissions (<code>openid</code>, <code>profile</code>, <code>offline_access</code>) so it can show which account is connected and stay signed in.</li>
+  </ul>
+  <p>Google and Microsoft data is used only to save and load your own desks, is never shared, sold or used for advertising, and is never used to train AI models. PaperDesk's use of information received from Google APIs follows the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+  <h2>Hosting</h2>
+  <p>The app's files are served by GitHub Pages. GitHub may keep standard web server logs (such as IP addresses) when the page loads; your notes are never sent to GitHub.</p>
+
+  <h2>Turning it off and deleting data</h2>
+  <ul>
+    <li>Choose <b>Disconnect</b> in PaperDesk's Sync dialog to stop syncing on a device.</li>
+    <li>Remove PaperDesk's access at <a href="https://myaccount.google.com/connections">myaccount.google.com/connections</a> (Google) or <a href="https://account.live.com/consent/Manage">account.live.com/consent/Manage</a> (Microsoft).</li>
+    <li>Google: delete the hidden app data under Drive → Settings → Manage apps → PaperDesk → Delete hidden app data. OneDrive: delete the <code>Apps/PaperDesk</code> folder.</li>
+    <li>Clearing this site's data in your browser removes the copy on that device.</li>
+  </ul>
+
+  <h2>Questions</h2>
+  <p>Open an issue on the project's GitHub page.</p>
+  <p><a href="./">Back to PaperDesk</a></p>
+</main>
+</body>
+</html>
