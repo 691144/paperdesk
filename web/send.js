@@ -17,6 +17,10 @@
   const SAVED = 'pd.send.saved', JOB = 'pd.send.job';
   const saved = () => ls.get(SAVED, []);
   const putSaved = (list) => ls.set(SAVED, list);
+  // The default destination: Send (S) goes straight to it. quick = send without the confirm step.
+  const DEF = 'pd.send.default';
+  const getDefault = () => { const d = ls.get(DEF); const s = d && saved().find((x) => x.id === d.id); return s && destOf(s) && routeOf(s) ? { ...d, s } : null; };
+  const setDefault = (id, quick = false) => ls.set(DEF, id ? { id, quick: !!quick } : null);
   const uid = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
   // Folder handles live in IndexedDB (they cannot be stored as JSON).
@@ -78,7 +82,7 @@
   };
 
   /* ------------------------------------------------------------- state */
-  const st = { open: false, view: 'pick', scope: 'selection', noteId: null, q: '', cat: 'all', dest: null, routeIdx: 0, custom: null, savedId: null, cfg: {}, opts: {}, remember: true, pick: {}, items: [], busy: false, result: null, progress: 0, authError: '' };
+  const st = { open: false, view: 'pick', scope: 'selection', noteId: null, q: '', cat: 'all', dest: null, routeIdx: 0, custom: null, savedId: null, cfg: {}, opts: {}, remember: true, makeDefault: false, pick: {}, items: [], busy: false, result: null, progress: 0, authError: '' };
   let dlg;
 
   function notesForScope() {
@@ -106,23 +110,49 @@
     } catch { return att; }
   }
   async function buildItems() {
-    const items = F.buildItems(notesForScope(), { desk: deskName(), types: TYPES, badges: B, inkSvg: inkSvgOf });
+    const AI = window.PaperDeskAI;
+    const extraSvg = (n) => (n.type === 'chart' ? AI?.chartSvgOf(n) : n.type === 'sketch' ? AI?.sketchSvgOf(n) : '') || '';
+    const items = F.buildItems(notesForScope(), { desk: deskName(), types: TYPES, badges: B, inkSvg: inkSvgOf, extraSvg });
     for (const it of items) it.attachments = await Promise.all(it.attachments.map((a) => (a.ink ? rasterize(a) : a)));
     st.items = items;
   }
 
   /* ------------------------------------------------------------- open */
-  async function open(scope, noteId) {
+  // open(scope, noteId, { choose }) — with a default destination set, this goes
+  // straight to it (or sends right away); choose: true always shows the list.
+  async function open(scope, noteId, { choose = false } = {}) {
     if (!dlg) mount();
+    if (st.busy) { if (!dlg.open) { render(); dlg.showModal(); st.open = true; } return; }
     const sel = A.selectedIds();
     st.scope = scope === 'note' ? 'note' : scope === 'desk' ? 'desk' : sel.length ? 'selection' : 'desk';
     st.noteId = noteId || null;
-    Object.assign(st, { view: 'pick', q: '', cat: 'all', dest: null, custom: null, savedId: null, cfg: {}, opts: {}, pick: {}, result: null, busy: false, authError: '' });
+    Object.assign(st, { view: 'pick', q: '', cat: 'all', dest: null, custom: null, savedId: null, cfg: {}, opts: {}, pick: {}, result: null, busy: false, authError: '', makeDefault: false });
     await buildItems();
+    const def = !choose && st.items.length ? getDefault() : null;
+    if (def) {
+      loadSaved(def.s);
+      if (def.quick && readyToGo(curRoute())) return quickSend(def.s);
+      st.view = 'quick';
+    }
     render();
     if (!dlg.open) dlg.showModal();
     st.open = true;
-    setTimeout(() => $('#sd-q', dlg)?.focus(), 30);
+    setTimeout(() => (st.view === 'quick' ? $('[data-act="go-default"]', dlg) : $('#sd-q', dlg))?.focus(), 30);
+  }
+  function loadSaved(s) {
+    if (s.destId === 'custom') Object.assign(st, { custom: { name: s.name, route: s.route, method: s.method }, dest: null, routeIdx: 0 });
+    else { const d = CAT.D.find((x) => x.id === s.destId); Object.assign(st, { dest: s.destId, custom: null, routeIdx: Math.min(s.routeIdx || 0, d.routes.length - 1) }); }
+    Object.assign(st, { savedId: s.id, cfg: { ...(s.cfg || {}) }, opts: { ...(s.opts || {}) }, pick: {}, authError: '', remember: true, result: null });
+  }
+  // Send to the default without showing the dialog; it only opens if something needs attention.
+  async function quickSend(s) {
+    st.view = 'route'; render();
+    toast(`Sending ${countLabel(st.items.length)} to ${s.name}…`);
+    await go();
+    const res = st.result || {};
+    const failed = (res.results || []).some((x) => !x.ok && x.code !== 'skipped');
+    if (failed || res.seq || res.authFail) { render(); if (!dlg.open) dlg.showModal(); st.open = true; return; }
+    toast(res.title === `Sent to ${destOf(s).name}` ? `Sent ${countLabel(st.items.length)} to ${s.name}` : `${res.title} · ${s.name}`);
   }
 
   function mount() {
@@ -154,12 +184,15 @@
   }
 
   function viewPick() {
-    const sv = saved().sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
+    const defId = getDefault()?.id;
+    const sv = saved().sort((a, b) => (b.id === defId) - (a.id === defId) || (b.lastUsed || 0) - (a.lastUsed || 0));
     return head(`Send ${countLabel(st.items.length)} to…`) + `<div class="sd-body">
       ${scopeBar()}
       ${sv.length ? `<h3>Your destinations</h3><div class="sd-saved">${sv.map((s) => {
         const d = destOf(s); if (!d) return '';
-        return `<div class="row">${mono(d)}<div class="t"><b>${esc(s.name)}</b><small>${esc(routeTitle(routeOf(s), d))}</small></div>
+        const isDef = s.id === defId;
+        return `<div class="row${isDef ? ' is-default' : ''}">${mono(d)}<div class="t"><b>${esc(s.name)}${isDef ? ' <span class="sd-badge auto">Default</span>' : ''}</b><small>${esc(routeTitle(routeOf(s), d))}</small></div>
+          <button type="button" class="ib sm sd-star" data-act="star" data-id="${s.id}" aria-pressed="${isDef}" aria-label="${isDef ? 'Default destination (press to unset)' : 'Make this the default'}" title="${isDef ? 'Default: Send and S go straight here' : 'Make this the default'}">${icon('star', isDef ? 'fill' : '')}</button>
           <button type="button" class="btn primary" data-act="use-saved" data-id="${s.id}" ${st.items.length ? '' : 'disabled'}>Send</button>
           <button type="button" class="ib sm" data-act="edit-saved" data-id="${s.id}" aria-label="Change ${esc(s.name)}" title="Change">${icon('more')}</button></div>`;
       }).join('')}</div>` : ''}
@@ -195,9 +228,26 @@
         const conn = x.kind === 'direct' ? C[x.conn] : null;
         return `<button type="button" class="sd-route" data-route="${i}" aria-pressed="${i === st.routeIdx}"><span class="sd-radio"></span><span class="t"><b>${esc(routeTitle(x, d))}</b><span class="sd-badge ${k.cls || ''}">${esc(k.label)}</span>${conn?.beta ? '<span class="sd-badge beta">Beta</span>' : ''}<p>${esc(k.what(d))}</p></span></button>`;
       }).join('')}</div>`}
-      <div class="sd-panel">${panelHtml(d, r)}</div>
+      <div class="sd-panel">${panelHtml(d, r)}${defaultHtml()}</div>
     </div>
     <div class="sd-foot">${footHtml(d, r)}</div>`;
+  }
+  const defaultHtml = () => (st.savedId && getDefault()?.id === st.savedId
+    ? '<p class="sd-note">This is your default destination: the Send button and S come straight here.</p>'
+    : `<label class="sd-check"><input type="checkbox" data-make-default ${st.makeDefault ? 'checked' : ''}/> <span>Make this my default destination (the Send button and S come straight here; Shift+S lets you choose)</span></label>`);
+
+  function viewQuick() {
+    const def = getDefault(); if (!def) { st.view = 'pick'; return viewPick(); }
+    const s = def.s, d = destOf(s), r = curRoute(), ready = readyToGo(r);
+    return head(`Send ${countLabel(st.items.length)}`) + `<div class="sd-body">
+      ${scopeBar()}
+      <h3>To your default destination</h3>
+      <div class="sd-saved"><div class="row is-default">${mono(d)}<div class="t"><b>${esc(s.name)}</b><small>${esc(routeTitle(r, d))}</small></div>
+        <button type="button" class="ib sm" data-act="edit-saved" data-id="${s.id}" aria-label="Change ${esc(s.name)}" title="Change settings">${icon('more')}</button></div></div>
+      ${ready ? '' : '<p class="sd-warn">This destination needs attention first (sign in, or a missing setting). Press the button to fix it.</p>'}
+      <label class="sd-check"><input type="checkbox" data-quick ${def.quick ? 'checked' : ''}/> <span>Next time, send right away without this step (it only opens if something needs attention)</span></label>
+    </div>
+    <div class="sd-foot"><span class="grow">Shift+S always lets you choose.</span><button type="button" class="btn ghost" data-act="choose">Choose another app</button><button type="button" class="btn primary" data-act="go-default" ${st.items.length && !st.busy ? '' : 'disabled'}>${st.busy ? 'Working…' : ready ? `Send to ${esc(d.name)}` : 'Fix and send'}</button></div>`;
   }
 
   const stepsHtml = (steps) => (steps?.length ? `<ol class="sd-steps">${steps.map((s) => `<li>${esc(s).replace(/`([^`]+)`/g, '<code>$1</code>')}</li>`).join('')}</ol>` : '');
@@ -348,7 +398,7 @@
       ${res.authFail ? `<p class="sd-warn">The sign-in or token was not accepted. <a href="#" data-act="back">Go back</a> to connect again or fix the token.</p>` : ''}
       ${badN && alt.length ? `<h3>Other ways to get them to ${esc(d.name)}</h3><div class="sd-routes">${alt.map(({ x, i }) => `<button type="button" class="sd-route" data-alt="${i}"><span class="t"><b>${esc(routeTitle(x, d))}</b><span class="sd-badge ${KIND[x.kind]?.cls || ''}">${esc(KIND[x.kind]?.label || '')}</span></span></button>`).join('')}</div>` : ''}
     </div>
-    <div class="sd-foot"><span class="grow">${okN ? `${okN} sent` : ''}${okN && badN ? ' · ' : ''}${badN ? `${badN} failed` : ''}</span><button type="button" class="btn ghost" data-act="home">Send somewhere else</button><button type="button" class="btn primary" data-act="close">Done</button></div>`;
+    <div class="sd-foot"><span class="grow">${okN ? `${okN} sent` : ''}${okN && badN ? ' · ' : ''}${badN ? `${badN} failed` : ''}</span>${okN && !badN && !(st.savedId && getDefault()?.id === st.savedId) ? '<button type="button" class="btn ghost" data-act="make-default">' + icon('star', 's16') + 'Make this my default</button>' : ''}<button type="button" class="btn ghost" data-act="home">Send somewhere else</button><button type="button" class="btn primary" data-act="close">Done</button></div>`;
   }
 
   /* ------------------------------------------------------ custom tools */
@@ -393,7 +443,7 @@
     if (!dlg) return;
     const box = $('.sd', dlg);
     const scroll = $('.sd-body', box)?.scrollTop || 0;
-    box.innerHTML = st.view === 'pick' ? viewPick() : st.view === 'route' ? viewRoute() : st.view === 'result' ? viewResult() : st.view === 'custom' ? viewCustom() : viewIO();
+    box.innerHTML = st.view === 'quick' ? viewQuick() : st.view === 'pick' ? viewPick() : st.view === 'route' ? viewRoute() : st.view === 'result' ? viewResult() : st.view === 'custom' ? viewCustom() : viewIO();
     const body = $('.sd-body', box); if (body && st.keepScroll) body.scrollTop = scroll;
     st.keepScroll = false;
     loadPickers();
@@ -450,7 +500,11 @@
       case 'custom-next': st.custom.route = customRoute(st.custom.method); st.routeIdx = 0; st.view = 'route'; st.remember = true; render(); break;
       case 'use-saved': { const s = saved().find((x) => x.id === t.dataset.id); if (s) useSaved(s, false); break; }
       case 'edit-saved': { const s = saved().find((x) => x.id === t.dataset.id); if (s) useSaved(s, true); break; }
-      case 'del-saved': putSaved(saved().filter((x) => x.id !== st.savedId)); st.savedId = null; toast('Destination forgotten on this device'); Object.assign(st, { view: 'pick' }); render(); break;
+      case 'choose': Object.assign(st, { view: 'pick', dest: null, custom: null, savedId: null, cfg: {}, opts: {}, pick: {}, result: null }); render(); setTimeout(() => $('#sd-q', dlg)?.focus(), 20); break;
+      case 'go-default': if (readyToGo(curRoute())) go(); else { st.view = 'route'; render(); } break;
+      case 'star': { const cur = ls.get(DEF); const on = cur?.id !== t.dataset.id; setDefault(on ? t.dataset.id : null, on ? cur?.quick : false); toast(on ? 'Default set: Send and S go straight there' : 'No default destination'); rerender(); break; }
+      case 'make-default': { const d = curDest(), r = curRoute(); if (!st.savedId || !saved().some((x) => x.id === st.savedId)) remember(d, r); setDefault(st.savedId, getDefault()?.quick); toast(`Default set: ${saved().find((x) => x.id === st.savedId)?.name || d.name}`); rerender(); break; }
+      case 'del-saved': if (ls.get(DEF)?.id === st.savedId) setDefault(null); putSaved(saved().filter((x) => x.id !== st.savedId)); st.savedId = null; toast('Destination forgotten on this device'); Object.assign(st, { view: 'pick' }); render(); break;
       case 'reload': delete st.pick[t.dataset.key]; rerender(); break;
       case 'connect': connect(); break;
       case 'go': go(); break;
@@ -480,6 +534,8 @@
     const el = e.target;
     if (el.dataset.ioImport !== undefined) { importSetups(el.files?.[0]); return; }
     if (el.dataset.remember !== undefined) { st.remember = el.checked; return; }
+    if (el.dataset.makeDefault !== undefined) { st.makeDefault = el.checked; return; }
+    if (el.dataset.quick !== undefined) { const cur = ls.get(DEF); if (cur) ls.set(DEF, { ...cur, quick: el.checked }); return; }
     if (el.dataset.colK !== undefined) { const cols = st.cfg.cols || F.CSV_PRESETS.generic.cols.slice(0, 6).map((c) => [...c]); const i = Number(el.dataset.colK); cols[i] = [el.value, cols[i][1] === F.FIELDS[cols[i][0]]?.label || !cols[i][1] ? F.FIELDS[el.value].label : cols[i][1]]; st.cfg.cols = cols; rerender(); return; }
     if (!el.dataset.field) return;
     const key = el.dataset.field;
@@ -655,7 +711,9 @@
         try { await navigator.share(data); result = { title: 'Shared' }; }
         catch (e) { if (e.name === 'AbortError') { st.busy = false; return rerender(); } throw e; }
       }
-      if (!test && st.remember && shouldRemember(r) && !(result.results || []).every((x) => !x.ok)) remember(d, r);
+      const anyOk = !(result.results || []).length || (result.results || []).some((x) => x.ok);
+      if (!test && anyOk && ((st.remember && shouldRemember(r)) || st.makeDefault)) remember(d, r);
+      if (!test && anyOk && st.makeDefault && st.savedId) { setDefault(st.savedId, getDefault()?.quick); st.makeDefault = false; }
     } catch (e) {
       result = { title: 'Something went wrong', results: [{ title: d.name, ok: false, error: e.message, code: e.code }], authFail: e.code === 'auth' };
     }
@@ -674,6 +732,8 @@
     if (bits.length) return `${d.name} · ${bits.join(' / ')}`;
     if (r.kind === 'email' && st.cfg.to) return `${d.name} · ${st.cfg.to}`;
     if (r.kind === 'folder' && st.cfg.folderName) return `${d.name} · ${st.cfg.folderName}`;
+    if (r.kind === 'file') return `${d.name} · ${fileLabel(r.format)}`;
+    if (r.kind === 'copy') return `${d.name} · ${COPY_LABEL[r.flavor] || 'Copy'}`;
     return d.name;
   }
   function remember(d, r) {
@@ -707,5 +767,5 @@
     } catch (e) { toast(e.message || 'Could not read that file'); }
   }
 
-  window.PaperDeskSend = { open, state: st, render };
+  window.PaperDeskSend = { open, state: st, render, getDefault, setDefault };
 })();
