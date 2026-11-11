@@ -1,7 +1,9 @@
 // PaperDesk service worker: works offline, and picks up new versions on the
 // next launch. App files are fetched from the network first (falling back to
-// the cache when offline or slow); web fonts are cached once.
-const CACHE = 'paperdesk-v9';
+// the cache when offline or slow); web fonts and the pinned AI libraries from
+// jsDelivr are cached once. AI model files are cached by the AI code itself.
+const CACHE = 'paperdesk-v11';
+const LIBS = 'paperdesk-libs-v1';
 const SHELL = [
   './',
   './index.html',
@@ -17,6 +19,13 @@ const SHELL = [
   './send-connectors.js',
   './send.js',
   './send.css',
+  './ai.css',
+  './ai.js',
+  './ai-render.js',
+  './ai-store.js',
+  './ai-asr-worker.js',
+  './ai-llm-worker.js',
+  './ai-image-worker.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
@@ -32,7 +41,8 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    // Only PaperDesk's own old caches: downloaded AI models live in other caches and must survive updates.
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => /^paperdesk-(v\d+|libs-v\d+)$/.test(k) && k !== CACHE && k !== LIBS).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
@@ -67,5 +77,13 @@ self.addEventListener('fetch', (event) => {
       return res;
     })));
   }
-  // Everything else (Google and Microsoft sign-in and storage APIs) goes straight to the network.
+  // AI libraries pinned to an exact version never change: cache them for offline use.
+  if (url.host === 'cdn.jsdelivr.net' && /@\d+\.\d+\.\d+/.test(url.pathname)) {
+    event.respondWith(caches.open(LIBS).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {
+      if (res.ok) c.put(req, res.clone());
+      return res;
+    }))));
+    return;
+  }
+  // Everything else (sign-in, storage APIs, model downloads) goes straight to the network.
 });

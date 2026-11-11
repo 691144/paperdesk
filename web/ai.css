@@ -1,0 +1,78 @@
+/* PaperDesk — AI on this device (panel, model manager, AI note types) */
+#ai-dlg, #ai-3d { width: min(720px, calc(100vw - 24px)); max-height: min(88vh, 900px); padding: 0; overflow: hidden; }
+#ai-3d { width: min(980px, calc(100vw - 24px)); }
+#ai-dlg[open], #ai-3d[open] { display: flex; }
+#ai-dlg::backdrop, #ai-3d::backdrop { background: rgba(20, 18, 14, .32); }
+.sd textarea.ai-q, .sd textarea.ai-out { font-family: inherit; font-size: 14px; line-height: 1.5; min-height: 0; }
+.sd textarea.ai-out { min-height: 180px; }
+.sd textarea.ai-cdata { font-family: var(--mono); font-size: 12.5px; }
+.kbd { font-size: 11px; opacity: .75; margin-left: 4px; font-weight: 500; }
+.ai-inline { align-self: center; }
+.ai-setup { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--ink); flex-wrap: wrap; }
+.ai-setup > svg { color: var(--accent); flex: none; }
+.ai-setup .t { flex: 1; min-width: 220px; }
+.ai-setup b { font-size: 14px; }
+.ai-stream { font-size: 13px; line-height: 1.55; white-space: pre-wrap; color: var(--ink-2); max-height: 300px; overflow: auto; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); min-height: 60px; }
+.ai-stream:empty { display: none; }
+.ai-live { display: flex; flex-direction: column; gap: 6px; }
+.ai-live:empty { display: none; }
+.ai-phase { font-size: 13px; color: var(--ink-2); }
+.sd-progress.busy i { width: 35% !important; animation: ai-busy 1.2s ease-in-out infinite; }
+@keyframes ai-busy { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) { .sd-progress.busy i { animation: none; width: 100% !important; opacity: .5; } }
+
+.ai-models { display: flex; flex-direction: column; gap: 6px; }
+.ai-model { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.ai-model.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ai-model.off { opacity: .55; }
+.ai-model .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ai-model b { font-size: 13.5px; font-weight: 600; }
+.ai-model b .sd-badge { margin-left: 4px; }
+.ai-model small { font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+.ai-model .acts { display: flex; gap: 4px; align-items: center; flex: none; }
+.ai-models .sm-off { align-self: flex-start; height: 30px; font-size: 12.5px; }
+.ai-prog { display: flex; flex-direction: column; gap: 4px; }
+.ai-prog:empty { display: none; }
+
+.ai-tasks { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink); line-height: 1.45; }
+.ai-chart-big, .ai-sketch-big { border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 10px; }
+.ai-chart-big svg { display: block; width: 100%; height: auto; }
+.ai-sketch-big svg { display: block; width: 100%; height: auto; max-height: 52vh; }
+.ai-img { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.ai-img img { max-width: 100%; max-height: 52vh; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.ai-img figcaption { font-size: 12.5px; color: var(--ink-3); text-align: center; }
+
+/* AI note types on the desk */
+.ai-chartbox, .ai-sketchbox { flex: 1; min-height: 0; display: flex; }
+.ai-chartbox svg, .ai-sketchbox svg { width: 100%; height: 100%; display: block; }
+.ai-chart .t { fill: var(--ink-2); }
+.ai-chart .hole { fill: var(--surface); }
+.ai-imgbox { position: relative; }
+.ai-imgbox .pd-img-thumb { width: 100%; height: 100%; object-fit: cover; }
+.ai-3d-btn { position: absolute; right: 6px; bottom: 6px; height: 24px; padding: 0 8px; font-size: 11px; opacity: .95; }
+/* Dark ink stays readable on the dark theme (pen, shapes and AI sketches). */
+[data-theme="dark"] :is(#ink, .scribbles, .ai-sketch, .pd-draw-surface, .drawbox svg) [stroke="#1C1B18"] { stroke: var(--ink); }
+[data-theme="dark"] :is(#ink, .scribbles, .ai-sketch, .pd-draw-surface, .drawbox svg) text[fill="#1C1B18"] { fill: var(--ink); }
+
+/* Transcript with times in Quick Look */
+.ai-transcript { display: flex; flex-direction: column; gap: 2px; }
+.ai-transcript button { display: flex; gap: 10px; align-items: baseline; text-align: left; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.ai-transcript button:hover, .ai-transcript button:focus-visible { background: var(--surface-2); }
+.ai-transcript .mono { flex: none; font-size: 11.5px; color: var(--accent); min-width: 40px; }
+
+/* Status chip while a model downloads or dictation runs */
+#ai-status { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 32px); padding: 8px 14px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: inherit; font-size: 12.5px; cursor: pointer; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+#ai-status[hidden] { display: none; }
+#ai-status svg { color: var(--accent); flex: none; }
+#ai-status span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ai-status i { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--p, 0%); background: var(--accent); transition: width .2s; }
+
+/* 3D viewer */
+.ai-3d-stage { flex: 1 1 auto; min-height: 160px; height: 62vh; background: #F4F1EA; touch-action: none; }
+.ai-3d-stage canvas { display: block; width: 100%; height: 100%; }
+
+@media (max-width: 560px) {
+  #ai-dlg, #ai-3d { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; margin: 0; }
+  .ai-3d-stage { height: auto; }
+  #ai-status { bottom: 96px; }
+}

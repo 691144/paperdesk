@@ -61,6 +61,26 @@ Microsoft and Google destinations ask for an extra permission the first time (On
 
 Drawings on notes are sent as pictures; voice memos and files as attachments where the route supports them.
 
+**Default destination:** tick *Make this my default destination* (or press **Make this my default** after a send, or the star next to a saved destination). From then on, **S** and the paper-plane button go straight to it with one **Send** button; tick *Send right away* to skip even that (the dialog only opens if something needs attention). **Shift+S**, or *Choose another app*, always shows the full list.
+
+## AI on this device
+
+Press **A** (or the sparkle button in the top bar) for the AI panel, **D** to dictate a note, or use the sparkle button on a note for actions on that note. Everything runs in the browser on your own device: notes, recordings and prompts are never sent anywhere. The first time, choose models under **Models & settings**; each downloads once from Hugging Face (the AI code from jsDelivr), is stored in the browser, and then works offline.
+
+| Feature | Model | Download |
+| --- | --- | --- |
+| **Speech to text**: live transcript while recording a voice memo or dictating, *Transcribe* for existing voice memos, and in Quick Look a transcript with times (tap a sentence to hear it) | Whisper large-v3 turbo (best for English, Greek and ~95 more languages); a compact version for phones; Whisper small for browsers without WebGPU | 1.6 GB / 565 MB / 250 MB |
+| **Writing and making**: summarize, improve, shorten, fix spelling, translate (English, Greek), continue, suggest a title, turn into a checklist, break tasks into steps, find dates → reminders and events, chart from a note, diagram from a note; for the desk or selection: summary, open tasks, dates, ask a question; **Create** from a description: note, checklist, chart, diagram, drawing, 3D model, reminders | Qwen 3.5 (0.8B, 2B or 4B), run with WebLLM | 447 MB / 1.1 GB / 2.4 GB |
+| **Pictures**: a 512 × 512 picture from a description, with new variations | SD-Turbo, run with ONNX Runtime (Stability AI non-commercial licence: personal use) | 2.5 GB |
+
+- **New note types:** *Chart* (bar, horizontal bar, line, area, pie, doughnut; edit the type and numbers in Quick Look, or paste rows from a spreadsheet), *Sketch* (diagrams and drawings made of shapes; *Draw on the paper* turns one into ordinary ink you can erase or add to), *Picture* and *3D model* (turn it in 3D, download a `.glb`, or use the current view as its picture). Charts and sketches are sent to other apps as pictures, with a chart's numbers in the text.
+- **3D:** common objects (chair, table, desk lamp, tree, house, mug, car, bookshelf, bed, rocket; in English or Greek) appear instantly as ready-made shapes in the colours you name; *Design it with AI instead*, or any other object, asks the language model. Small models make simple 3D shapes; the 4B model does noticeably better.
+- **Speed (measured on an Intel Iris Xe laptop GPU):** Whisper turbo transcribes at about real time; the 2B model writes a checklist in about 15 seconds and a diagram or 3D design in about a minute; a picture takes about 10 seconds once loaded. Dedicated GPUs and Apple silicon are several times faster. Choose a smaller model in Models & settings if a device is slow. Long notes, such as transcripts, are processed in parts, and a request that stalls the graphics chip is cancelled instead of hanging.
+- **Storage:** models are kept in the browser's private storage for this site. PaperDesk checks there is room before a download and says how much is free; delete models you don't use in Models & settings.
+- **Languages:** Whisper chooses between the languages you tick (English and Greek by default) for each recording, or detects any language. Writing help answers in the language of your note.
+- **Privacy:** the browser's own speech recognition is not used (in Chrome it sends audio to Google). Recordings are transcribed on the device; nothing is uploaded.
+
+
 ## One-time setup for whoever hosts PaperDesk
 
 Sync needs one public client ID from Google and one from Microsoft. They are not secrets. Put them in [web/config.js](web/config.js). Until then, people can paste their own IDs under **Sync → Use your own client ID**.
@@ -97,6 +117,10 @@ Push the change and the site updates in a minute or two.
 | `web/send-catalog.js` | The destinations and the routes each one supports |
 | `web/send-connectors.js` | Direct API connectors (Microsoft Graph, Google, Todoist, Trello, Notion, …) |
 | `web/send-formats.js` | Markdown, HTML, CSV, ENEX, ICS, OPML, JSON, templates and zip (no browser APIs; tested in Node) |
+| `web/ai.js`, `ai.css` | AI on this device: the panel, model manager, note actions, dictation, charts, sketches, pictures and 3D notes |
+| `web/ai-render.js` | Reading model output, charts as SVG, diagram layout, sketches as ink, 3D specs, audio splitting (no browser APIs; tested in Node) |
+| `web/ai-asr-worker.js`, `ai-llm-worker.js`, `ai-image-worker.js` | Background threads for Whisper (transformers.js), the language model (WebLLM) and SD-Turbo (ONNX Runtime) |
+| `web/ai-store.js` | Model files in the browser's private file system |
 | `web/config.js` | Public client IDs |
 | `web/sw.js` | Offline support; app files load network-first so updates arrive on the next launch |
 | `web/privacy.html` | Privacy page |
@@ -110,7 +134,10 @@ Push the change and the site updates in a minute or two.
 | Keys | Action |
 | --- | --- |
 | `V` `H` `T` `P` `E` `L` | Select · Pan · Text · Draw · Eraser · Link |
-| `S` | Send the selected notes (or the desk) to another app |
+| `S` | Send the selected notes (or the desk) to another app, or straight to your default destination |
+| `Shift S` | Send, always choosing the destination |
+| `A` | AI panel: create, summarize, ask about the desk, models and settings |
+| `D` | Dictate a note (speech to text on this device) |
 | `B` | Badge tray |
 | `N` | Add anything |
 | `Ctrl/⌘ K` | Search |

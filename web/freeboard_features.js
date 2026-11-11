@@ -235,6 +235,7 @@
       const rec = activeRecorders.get(note.id);
       clearInterval(rec.timer);
       try { rec.recog?.stop(); } catch {}
+      try { rec.live?.stop(); } catch {}
       try { rec.recorder?.stop(); } catch {}
       try { rec.stream?.getTracks().forEach((t) => t.stop()); } catch {}
       activeRecorders.delete(note.id);
@@ -256,9 +257,11 @@
         note.meta = note.meta || {};
         note.meta.duration = '00:00';
 
-        // Optional live speech-to-text transcript
+        // Live transcript with Whisper on this device, when the speech model is set up.
+        // (The browser's own speech recognition is not used: in Chrome it sends the audio to Google.)
+        const live = window.PaperDeskAI?.startLive?.(note, stream) || null;
         let recog = null;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SR = null;
         if (SR) {
           try {
             recog = new SR();
@@ -301,7 +304,7 @@
           updateNotePlayerDom(note);
         }, 300);
 
-        activeRecorders.set(note.id, { recorder, stream, timer, chunks, startTime, recog });
+        activeRecorders.set(note.id, { recorder, stream, timer, chunks, startTime, recog, live });
         if (!note.body || note.body === 'Transcript will appear here.') note.body = 'Recording voice memo…';
         renderAll();
         toast('Recording microphone… Click Stop when finished');
@@ -1107,7 +1110,9 @@
     `;
   }
 
+  let typeBodyExt = null, viewerExt = null;
   function enhancedTypeBody(n) {
+    if (typeBodyExt) { const h = typeBodyExt(n); if (h != null) return h; }
     const m = n.meta || {};
     switch (n.type) {
       case 'text':
@@ -1876,6 +1881,11 @@
       { label: 'Voice Memo (Record & Play)', icon: 'mic', action: () => createNoteOnCanvas('voice', worldPt) },
       { label: 'Drawing / Sketch Pad', icon: 'pen', action: () => createNoteOnCanvas('drawing', worldPt) },
       { label: 'Reminder / Alarm', icon: 'alarm', action: () => createNoteOnCanvas('alarm', worldPt) },
+      ...(window.PaperDeskAI ? [
+        { label: 'Chart', icon: 'chart', action: () => window.PaperDeskAI.newChart(worldPt) },
+        { label: 'Dictate a Note (Speech to Text)', icon: 'mic', hint: 'D', action: () => window.PaperDeskAI.dictate(worldPt) },
+        { label: 'Create with AI…', icon: 'sparkle', hint: 'A', action: () => window.PaperDeskAI.open({ at: worldPt }) },
+      ] : []),
       {
         label: 'More On-Canvas Notes', icon: 'calendar',
         sub: [
@@ -1971,6 +1981,7 @@
       { head: `${t.label}: ${n.title || 'Untitled'}`, icon: t.icon },
       { label: 'Quick Look Preview', icon: 'eye', hint: 'Space', action: () => openPreview(n.id) },
       { label: 'Send to Another App…', icon: 'send', hint: 'S', action: () => window.PaperDeskSend?.open('note', n.id) },
+      ...(window.PaperDeskAI ? [{ label: 'AI on This Device', icon: 'sparkle', sub: [{ head: 'AI actions', icon: 'sparkle' }, ...window.PaperDeskAI.noteItems(n)] }] : []),
       { label: 'Expand to Full Canvas', icon: 'expand', hint: 'F', action: () => maximize(n.id) },
       { label: execLabel, icon: 'external', action: () => enhancedOpenNative(n) },
       ...(n.type === 'voice' ? [{ label: n.recording ? 'Stop Microphone Recording' : 'Record Microphone Audio', icon: 'mic', action: () => toggleVoiceRecording(n) }] : []),
@@ -2299,6 +2310,10 @@
      13. Enhanced Quick Look & Expanded View Stage (`viewerStage`)
      ------------------------------------------------------------------ */
   function enhancedViewerStage(n, lg) {
+    if (viewerExt) { const h = viewerExt(n, lg, baseViewerStage); if (h != null) return h; }
+    return baseViewerStage(n, lg);
+  }
+  function baseViewerStage(n, lg) {
     const m = n.meta || {};
     if (n.type === 'screenClip' && (m.dataUrl || m.blobUrl)) {
       return `<div class="vs ${lg ? 'lg' : ''}">
@@ -2464,7 +2479,12 @@
   /* ------------------------------------------------------------------
      15. Register Hooks into PaperDesk Core & Re-render
      ------------------------------------------------------------------ */
-  window.PaperDeskFeatures = { backupDialog: enhancedSyncDialog };
+  window.PaperDeskFeatures = {
+    backupDialog: enhancedSyncDialog, toggleVoiceRecording, togglePlayMedia, createNoteOnCanvas,
+    // Other modules render their own note types: fn(n) / fn(n, lg, base) returns HTML, or null to pass.
+    extendTypeBody(fn) { const prev = typeBodyExt; typeBodyExt = prev ? (n) => fn(n) ?? prev(n) : fn; },
+    extendViewerStage(fn) { const prev = viewerExt; viewerExt = prev ? (n, lg, base) => fn(n, lg, base) ?? prev(n, lg, base) : fn; },
+  };
 
   App.setHooks({
     typeBody: enhancedTypeBody,

@@ -62,6 +62,10 @@
     if (n.meta?.audioDataUrl) addAtt(n.meta.audioDataUrl, `${title} (voice memo)`);
     const svg = n.scribbles?.length && ctx.inkSvg ? ctx.inkSvg(n) : '';
     if (svg) attachments.push({ name: `${safeName(title)} (ink).svg`, mime: 'image/svg+xml', dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), ink: true });
+    // Charts and AI sketches go out as pictures (made by ctx.extraSvg); a chart's numbers also go in the text.
+    const extra = ctx.extraSvg ? ctx.extraSvg(n) : '';
+    if (extra) attachments.push({ name: `${safeName(title)}.svg`, mime: 'image/svg+xml', dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(extra), ink: true });
+    const text = n.meta?.chart ? [body.trim(), chartText(n.meta.chart)].filter(Boolean).join('\n\n') : body;
     const badges = (n.badges || []).filter((b) => b !== 'circle');
     const due = dueOf(n);
     return {
@@ -69,7 +73,7 @@
       type: n.type || 'text',
       typeLabel,
       title,
-      text: body,
+      text,
       url: n.url && !n.url.startsWith('data:') ? n.url : '',
       tasks: (n.tasks || []).map((t) => ({ title: String(t.title || ''), done: !!t.done })).filter((t) => t.title),
       due: due ? (due.time ? `${due.date}T${due.time}` : due.date) : '',
@@ -83,6 +87,12 @@
       created: n.createdAt ? new Date(n.createdAt).toISOString() : '',
       attachments,
     };
+  }
+
+  /** A chart's data as lines: "Jan: 900 EUR" or "Jan: Rent 900, Food 400". */
+  function chartText(c) {
+    const s = Array.isArray(c?.series) ? c.series : [];
+    return (c?.labels || []).map((l, i) => `${l}: ${s.map((x) => `${s.length > 1 ? `${x.name} ` : ''}${x.values?.[i] ?? ''}`).join(', ')}${c.unit ? ` ${c.unit}` : ''}`).join('\n');
   }
 
   function buildItems(notes, ctx = {}) {

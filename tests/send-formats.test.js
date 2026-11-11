@@ -137,6 +137,18 @@ test('zip is readable: names, sizes and CRCs line up', () => {
   assert.equal(z.readUInt32LE(z.length - 22), 0x06054b50);
 });
 
+test('charts and sketches go out as pictures, and a chart keeps its numbers as text', () => {
+  const chart = { id: 'ch', type: 'chart', title: 'Costs', body: 'Monthly', meta: { chart: { type: 'bar', unit: 'EUR', labels: ['Rent', 'Food'], series: [{ name: 'Value', values: [900, 400] }] } } };
+  const two = { id: 'c2', type: 'chart', title: 'Two', meta: { chart: { labels: ['Jan'], series: [{ name: 'A', values: [1] }, { name: 'B', values: [2] }] } } };
+  const ctx2 = { ...ctx, extraSvg: (n) => (n.type === 'chart' ? '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>' : '') };
+  const [a, b] = F.buildItems([chart, two], ctx2);
+  assert.equal(a.text, 'Monthly\n\nRent: 900 EUR\nFood: 400 EUR');
+  assert.equal(b.text, 'Jan: A 1, B 2');
+  assert.equal(a.attachments.length, 1);
+  assert.ok(a.attachments[0].ink && a.attachments[0].name === 'Costs.svg');
+  assert.equal(F.buildItem({ id: 't', type: 'text', body: 'x' }, ctx2).attachments.length, 0);
+});
+
 test('mailto stays under the limit and says when it cut the text', () => {
   const short = F.mailtoUrl({ to: 'me@onenote.com', subject: 'Hi', body: 'x' });
   assert.equal(short.truncated, false); assert.ok(short.url.startsWith('mailto:me@onenote.com?subject=Hi'));
