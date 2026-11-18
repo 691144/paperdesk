@@ -1,0 +1,66 @@
+/* PaperDesk — Look: note styles and colours, desk previews, dialog */
+
+/* ---- colours ---- */
+:is(#notes .note, .lk-prev)[data-nc],
+:is(#notes .note, .lk-prev)[data-ns="sticky"], :is(#notes .note, .lk-prev)[data-ns="paper"], :is(#notes .note, .lk-prev)[data-ns="kraft"] {
+  --ink: #1C1B18; --ink-2: #4A463F; --ink-3: #6B665C; --line: rgba(0,0,0,.12); --line-2: rgba(0,0,0,.22);
+  --surface: rgba(255,255,255,.55); --surface-2: rgba(255,255,255,.35); --paper: rgba(0,0,0,.05); color: #1C1B18;
+}
+:is(#notes .note, .lk-prev)[data-ns="sticky"] { --ns-bg: #FFF1A8; }
+:is(#notes .note, .lk-prev)[data-ns="paper"] { --ns-bg: #FFFDF5; }
+:is(#notes .note, .lk-prev)[data-ns="kraft"] { --ns-bg: #D2B48C; }
+:is(#notes .note, .lk-prev)[data-nc] .card { background: var(--nc); }
+:is(#notes .note, .lk-prev)[data-nc="white"] .card { background: #FFFFFF; }
+
+/* ---- styles ---- */
+:is(#notes .note, .lk-prev)[data-ns="sticky"] .card {
+  background: linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,0) 38%), var(--nc, var(--ns-bg));
+  border: 0; border-radius: 3px; box-shadow: 0 1px 1px rgba(0,0,0,.14), 0 10px 16px -8px rgba(0,0,0,.38);
+}
+:is(#notes .note, .lk-prev)[data-ns="sticky"] .card::after {
+  content: ""; position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; pointer-events: none;
+  background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,.14) 50%, rgba(255,255,255,.45)); border-top-left-radius: 4px;
+}
+:is(#notes .note, .lk-prev)[data-ns="paper"] .card {
+  background: linear-gradient(90deg, transparent 33px, rgba(210,70,70,.38) 33px 34px, transparent 34px), repeating-linear-gradient(180deg, transparent 0 25px, rgba(70,100,170,.24) 25px 26px), var(--nc, var(--ns-bg));
+  padding-left: 44px; border: 1px solid rgba(0,0,0,.1); border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 14px -8px rgba(0,0,0,.3);
+}
+:is(#notes .note, .lk-prev)[data-ns="kraft"] .card {
+  background: var(--lk-noise), var(--nc, var(--ns-bg)); border: 1px solid rgba(80,50,20,.3); border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 10px 16px -8px rgba(0,0,0,.4);
+}
+:is(#notes .note, .lk-prev)[data-ns="glass"] .card {
+  background: color-mix(in srgb, var(--nc, #FFFFFF) 38%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,.6); border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.7);
+}
+[data-theme="dark"] :is(#notes .note, .lk-prev)[data-ns="glass"]:not([data-nc]) .card { background: rgba(28,30,34,.42); border-color: rgba(255,255,255,.22); box-shadow: 0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.18); }
+#notes .note[data-ns].dragging .card, #notes .note[data-nc].dragging .card { box-shadow: var(--shadow-2); }
+#notes .note[data-ns].drop .card, #notes .note[data-ns].link-source .card, #notes .note[data-nc].drop .card, #notes .note[data-nc].link-source .card { background: var(--accent-soft); }
+#notes .note[data-ns].selected .card, #notes .note[data-nc].selected .card { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* ---- desk themes: controls stay readable ---- */
+body.desk-themed #hint { background: var(--surface); padding: 4px 10px; border-radius: 999px; box-shadow: var(--shadow-1); }
+#viewport[data-desk] { background-repeat: repeat; }
+#viewport[data-desk="glass"] { background-repeat: no-repeat; }
+#viewport[data-desk="leather"] { background-repeat: no-repeat, repeat, repeat; }
+
+/* ---- dialog ---- */
+#look-dlg { width: min(640px, calc(100vw - 24px)); max-height: min(88vh, 860px); padding: 0; overflow: hidden; }
+#look-dlg[open] { display: flex; }
+#look-dlg::backdrop { background: rgba(20,18,14,.32); }
+.lk-desks { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.lk-desk { display: flex; flex-direction: column; gap: 5px; align-items: center; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; font-size: 12px; color: var(--ink); cursor: pointer; }
+.lk-desk[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.lk-desk i { display: block; width: 100%; height: 48px; border-radius: 6px; border: 1px solid var(--line); --bgx: 0px; --bgy: 0px; overflow: hidden; }
+.lk-desk i.plain { background-color: var(--paper); background-image: radial-gradient(var(--dot) 1px, transparent 1.3px); background-size: 10px 10px; }
+.lk-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.lk-style { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 8px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font: inherit; font-size: 12px; color: var(--ink); cursor: pointer; }
+.lk-style[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.lk-prev { display: block; width: 72px; height: 48px; position: relative; background: linear-gradient(135deg, #8FC3F0, #F2C6D8); border-radius: 6px; padding: 6px; }
+.lk-prev .card { position: absolute; inset: 6px; display: grid; place-items: center; font-weight: 600; font-size: 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); overflow: hidden; }
+.lk-colors { display: flex; gap: 8px; flex-wrap: wrap; }
+.lk-color { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(0,0,0,.14); background: var(--c); cursor: pointer; padding: 0; }
+.lk-color.none { background: conic-gradient(#fff 25%, #ddd 0 50%, #fff 0 75%, #ddd 0) 0 0 / 12px 12px; }
+.lk-color[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+@media (max-width: 560px) { #look-dlg { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; margin: 0; } }

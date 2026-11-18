@@ -63,6 +63,15 @@ Drawings on notes are sent as pictures; voice memos and files as attachments whe
 
 **Default destination:** tick *Make this my default destination* (or press **Make this my default** after a send, or the star next to a saved destination). From then on, **S** and the paper-plane button go straight to it with one **Send** button; tick *Send right away* to skip even that (the dialog only opens if something needs attention). **Shift+S**, or *Choose another app*, always shows the full list.
 
+## Look: desk themes, note styles and colours
+
+The palette button in the top bar (or a note's colour button, or right-click → *Colour and Style*) opens **Look**:
+
+- **Desk themes** (per desk): paper, grid, wood, leather, cork, chalkboard, glass, linen, blueprint.
+- **Note styles**: classic, sticky (post-it with a curl), lined, kraft, glass; and eight colours. Notes are opaque with a shadow; the tilt only shows while you move one.
+- **Fit the note to its content**: the note grows and shrinks as you type (text, checklists, reminders, links). Dragging a resize handle turns it off for that note.
+- Apply to **selected notes**, **all notes on the desk**, or set the **default for new notes** (kept on this device).
+
 ## AI on this device
 
 Press **A** (or the sparkle button in the top bar) for the AI panel, **D** to dictate a note, or use the sparkle button on a note for actions on that note. Everything runs in the browser on your own device: notes, recordings and prompts are never sent anywhere. The first time, choose models under **Models & settings**; each downloads once from Hugging Face (the AI code from jsDelivr), is stored in the browser, and then works offline.
@@ -117,6 +126,7 @@ Push the change and the site updates in a minute or two.
 | `web/send-catalog.js` | The destinations and the routes each one supports |
 | `web/send-connectors.js` | Direct API connectors (Microsoft Graph, Google, Todoist, Trello, Notion, …) |
 | `web/send-formats.js` | Markdown, HTML, CSV, ENEX, ICS, OPML, JSON, templates and zip (no browser APIs; tested in Node) |
+| `web/look.js`, `look.css` | Desk themes, note styles and colours, auto-fit, defaults for new notes |
 | `web/ai.js`, `ai.css` | AI on this device: the panel, model manager, note actions, dictation, charts, sketches, pictures and 3D notes |
 | `web/ai-render.js` | Reading model output, charts as SVG, diagram layout, sketches as ink, 3D specs, audio splitting (no browser APIs; tested in Node) |
 | `web/ai-asr-worker.js`, `ai-llm-worker.js`, `ai-image-worker.js` | Background threads for Whisper (transformers.js), the language model (WebLLM) and SD-Turbo (ONNX Runtime) |

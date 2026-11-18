@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="freeboard_features.css" />
   <link rel="stylesheet" href="send.css" />
   <link rel="stylesheet" href="ai.css" />
+  <link rel="stylesheet" href="look.css" />
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/" } }</script>
   <title>PaperDesk</title>
   <style>
@@ -737,6 +738,7 @@
         <button class="ib sm" data-act="link" aria-label="Link to another note" title="Link to another note"><svg class="i s16"><use href="#i-link"/></svg></button>
         <button class="ib sm" data-act="badges" aria-label="Badges" title="Badges" aria-haspopup="menu"><svg class="i s16"><use href="#i-tag"/></svg></button>
         <button class="ib sm" data-act="move" aria-label="Move to another desk" title="Move to another desk" aria-haspopup="menu"><svg class="i s16"><use href="#i-move"/></svg></button>
+        <button class="ib sm" data-act="look" aria-label="Colour and style" title="Colour and style"><svg class="i s16"><use href="#i-palette"/></svg></button>
         <button class="ib sm" data-act="ai" aria-label="AI actions" title="AI actions (on this device)" aria-haspopup="menu"><svg class="i s16"><use href="#i-sparkle"/></svg></button>
         <button class="ib sm" data-act="send" aria-label="Send to another app (S)" title="Send to another app (S)"><svg class="i s16"><use href="#i-send"/></svg></button>
         <div class="vdiv" style="height:20px"></div>
@@ -2627,6 +2629,7 @@
     else if (act === 'delete') deleteNote(n.id);
     else if (act === 'send') window.PaperDeskSend?.open('note', n.id);
     else if (act === 'ai') window.PaperDeskAI?.noteMenu(n, b);
+    else if (act === 'look') window.PaperDeskLook?.open('sel');
     else if (act === 'badges') showMenu(b, BADGES.map((x) => ({ label: x.label, icon: x.icon, checked: n.badges.includes(x.id), action: () => toggleBadge(n.id, x.id) })));
     else if (act === 'move') {
       const owner = ownerBoard(n.id);
@@ -2882,5 +2885,6 @@
   <script src="send.js"></script>
   <script src="ai-render.js"></script>
   <script src="ai.js"></script>
+  <script src="look.js"></script>
 </body>
 </html>

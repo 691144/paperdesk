@@ -1875,6 +1875,7 @@
 
     return [
       { head: `${board.title} · Desk Menu`, icon: 'desk' },
+      { label: 'Desk Theme and Note Look…', icon: 'tag', action: () => window.PaperDeskLook?.open() },
       { sec: 'Create Note on Canvas' },
       { label: 'Text Note', icon: 'type', hint: 'Dbl-click', action: () => createNoteOnCanvas('text', worldPt) },
       { label: 'Checklist', icon: 'checklist', action: () => createNoteOnCanvas('checklist', worldPt) },
@@ -1980,6 +1981,7 @@
     return [
       { head: `${t.label}: ${n.title || 'Untitled'}`, icon: t.icon },
       { label: 'Quick Look Preview', icon: 'eye', hint: 'Space', action: () => openPreview(n.id) },
+      { label: 'Colour and Style…', icon: 'tag', action: () => { select(n.id); window.PaperDeskLook?.open('sel'); } },
       { label: 'Send to Another App…', icon: 'send', hint: 'S', action: () => window.PaperDeskSend?.open('note', n.id) },
       ...(window.PaperDeskAI ? [{ label: 'AI on This Device', icon: 'sparkle', sub: [{ head: 'AI actions', icon: 'sparkle' }, ...window.PaperDeskAI.noteItems(n)] }] : []),
       { label: 'Expand to Full Canvas', icon: 'expand', hint: 'F', action: () => maximize(n.id) },

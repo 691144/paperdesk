@@ -2,7 +2,7 @@
 // next launch. App files are fetched from the network first (falling back to
 // the cache when offline or slow); web fonts and the pinned AI libraries from
 // jsDelivr are cached once. AI model files are cached by the AI code itself.
-const CACHE = 'paperdesk-v11';
+const CACHE = 'paperdesk-v12';
 const LIBS = 'paperdesk-libs-v1';
 const SHELL = [
   './',
@@ -20,6 +20,8 @@ const SHELL = [
   './send.js',
   './send.css',
   './ai.css',
+  './look.js',
+  './look.css',
   './ai.js',
   './ai-render.js',
   './ai-store.js',
